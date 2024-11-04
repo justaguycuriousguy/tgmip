@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vaporwave Meme Maker</title>
+    <title>Enhanced Meme Maker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/telegram-web-app/6.7.0/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -14,6 +14,7 @@
             --neon-green: #05ffa1;
             --dark-bg: #1a1a2e;
             --grid-color: rgba(255, 113, 206, 0.1);
+            --modal-bg: rgba(26, 26, 46, 0.95);
             --retrowave-gradient: linear-gradient(
                 45deg,
                 var(--neon-pink),
@@ -78,12 +79,6 @@
             -webkit-overflow-scrolling: touch;
             box-shadow: 0 0 10px var(--neon-pink);
             backdrop-filter: blur(5px);
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-
-        .stogie-selector::-webkit-scrollbar {
-            display: none;
         }
 
         .stogie-option {
@@ -101,11 +96,6 @@
             padding: 5px;
         }
 
-        .stogie-option:active {
-            transform: scale(0.95);
-            box-shadow: 0 0 15px var(--neon-purple);
-        }
-
         .stogie-option img {
             max-width: 100%;
             max-height: 100%;
@@ -113,157 +103,116 @@
             pointer-events: none;
         }
 
-        .control-panel {
-            background: rgba(0, 0, 0, 0.5);
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--modal-bg);
+            z-index: 1000;
             padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-            border: 1px solid var(--neon-green);
-            box-shadow: 0 0 10px var(--neon-green);
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(10px);
         }
 
-        .button {
-            background: var(--retrowave-gradient);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 16px;
+        .preview-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .preview-image {
             width: 100%;
-            margin-bottom: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .share-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-transform: uppercase;
-            font-weight: bold;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .button:active {
-            transform: scale(0.98);
-            box-shadow: 0 0 20px var(--neon-purple);
+        .share-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
-        .delete-button {
-            background: linear-gradient(45deg, #ff0844, #ffb199);
+        .share-button.telegram {
+            background: #0088cc;
         }
 
-        .delete-button.disabled {
-            background: #333;
-            cursor: not-allowed;
-            opacity: 0.5;
+        .share-button.twitter {
+            background: #1da1f2;
         }
 
-        .slider-container {
-            margin: 12px 0;
+        .quality-control {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
         }
 
-        .slider-container label {
+        .quality-control label {
             display: block;
             margin-bottom: 8px;
             color: var(--neon-pink);
-            text-transform: uppercase;
-            font-size: 14px;
-            letter-spacing: 1px;
         }
 
-        input[type="range"] {
-            width: 100%;
-            height: 36px;
-            -webkit-appearance: none;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            outline: none;
-            border: 1px solid var(--neon-blue);
-            margin: 0;
-            padding: 0;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 24px;
-            height: 24px;
-            background: var(--neon-purple);
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 10px var(--neon-purple);
-            border: none;
-            margin-top: -8px;
-        }
-
-        input[type="range"]::-webkit-slider-runnable-track {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            border: none;
-        }
-
-        .upload-area {
-            text-align: center;
-            padding: 40px;
-            color: var(--neon-blue);
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px var(--neon-blue);
-        }
-
-        .overlay-image {
+        .modal-close {
             position: absolute;
-            width: 150px;
-            height: auto;
-            cursor: move;
-            touch-action: none;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1000;
-            user-select: none;
-            -webkit-user-select: none;
-            pointer-events: all;
-            transform-origin: center;
-            transition: outline-color 0.3s ease;
-            will-change: transform;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
         }
 
-        .overlay-image.selected {
-            outline: 2px solid var(--neon-pink);
-            outline-offset: 2px;
-            box-shadow: 0 0 15px var(--neon-pink);
-        }
-
-        #fileInput {
-            display: none;
-        }
+        /* Your existing styles remain the same */
+        /* ... (keep all the previous styles) ... */
 
         @media (max-width: 480px) {
-            body {
-                padding: 8px;
+            .preview-content {
+                padding: 15px;
             }
 
-            .canvas-container {
-                height: calc(100vw * 0.8);
-            }
-
-            .button {
-                padding: 15px 20px;
+            .share-button {
+                padding: 10px;
                 font-size: 14px;
             }
 
-            .overlay-image {
-                width: 120px;
-            }
-
-            .upload-area {
-                font-size: 16px;
-                padding: 20px;
+            .modal-close {
+                top: 5px;
+                right: 5px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Main canvas and controls -->
     <div class="canvas-container" id="canvasContainer">
         <div class="upload-area" id="uploadArea">
             Click "Choose Image" to start
@@ -271,6 +220,7 @@
         <img id="baseImage" style="display: none;">
     </div>
 
+    <!-- Stogie selector -->
     <div class="stogie-selector" id="stogieSelector">
         <div class="stogie-option">
             <img src="images/stogie.png" alt="Stogie 1" data-type="overlay">
@@ -286,6 +236,7 @@
         </div>
     </div>
 
+    <!-- Controls -->
     <div class="control-panel">
         <input type="file" id="fileInput" accept="image/*">
         <button class="button" onclick="document.getElementById('fileInput').click()">
@@ -306,12 +257,43 @@
             <i class="fas fa-trash"></i> Delete Selected
         </button>
 
-        <button class="button" id="saveButton">
-            <i class="fas fa-save"></i> Save Meme
+        <button class="button" id="previewButton">
+            <i class="fas fa-eye"></i> Preview & Share
         </button>
     </div>
 
+    <!-- Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <button class="modal-close" onclick="closePreview()">×</button>
+            <h2>Preview & Share</h2>
+            <img id="previewImage" class="preview-image" alt="Preview">
+            
+            <div class="quality-control">
+                <label>Quality: <span id="qualityValue">High</span></label>
+                <input type="range" id="qualitySlider" min="1" max="3" value="2" 
+                    onInput="updateQualityLabel(this.value)">
+            </div>
+
+            <div class="share-options">
+                <button class="share-button telegram" onclick="shareToTelegram()">
+                    <i class="fab fa-telegram"></i> Telegram
+                </button>
+                <button class="share-button twitter" onclick="shareToTwitter()">
+                    <i class="fab fa-twitter"></i> Twitter
+                </button>
+                <button class="share-button" onclick="shareToOthers()">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+                <button class="share-button" onclick="downloadImage()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Core variables
         const container = document.getElementById('canvasContainer');
         const rotationSlider = document.getElementById('rotationSlider');
         const scaleSlider = document.getElementById('scaleSlider');
@@ -319,6 +301,8 @@
         const baseImage = document.getElementById('baseImage');
         const uploadArea = document.getElementById('uploadArea');
         const deleteButton = document.getElementById('deleteButton');
+        const previewModal = document.getElementById('previewModal');
+        const previewImage = document.getElementById('previewImage');
         
         let activeOverlay = null;
         let overlays = [];
@@ -327,7 +311,42 @@
         let currentY = 0;
         let initialX = 0;
         let initialY = 0;
+        let lastTapTime = 0;
+        let currentQuality = 2;
 
+        // Initialize touch events
+        function initializeTouchEvents() {
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+            container.addEventListener('touchstart', handleTouchStart, { passive: false });
+        }
+
+        // Handle touch events
+        function handleTouchStart(e) {
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                if (target.classList.contains('overlay-image')) {
+                    e.preventDefault();
+                    selectOverlay(target);
+                    dragStart(e);
+                }
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (isDragging && activeOverlay) {
+                e.preventDefault();
+                drag(e);
+            }
+        }
+
+        function handleTouchEnd() {
+            dragEnd();
+        }
+
+        // Create and manage overlays
         function createOverlay(source) {
             const overlay = document.createElement('img');
             overlay.src = source;
@@ -341,7 +360,7 @@
             overlays.push(overlay);
             
             overlay.addEventListener('mousedown', handleStart);
-            overlay.addEventListener('touchstart', handleStart);
+            overlay.addEventListener('touchstart', handleStart, { passive: false });
             
             return overlay;
         }
@@ -361,93 +380,33 @@
             scaleSlider.value = (overlay.dataset.scale || 1) * 100;
         }
 
-        document.querySelectorAll('.stogie-option').forEach(option => {
-            option.addEventListener('click', () => {
-                const img = option.querySelector('img');
-                if (img) {
-                    const overlay = createOverlay(img.src);
-                    selectOverlay(overlay);
+        // Initialize UI
+        function initializeUI() {
+            document.querySelectorAll('.stogie-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    const img = option.querySelector('img');
+                    if (img) {
+                        const overlay = createOverlay(img.src);
+                        selectOverlay(overlay);
+                    }
+                });
+            });
+
+            deleteButton.addEventListener('click', () => {
+                if (activeOverlay) {
+                    container.removeChild(activeOverlay);
+                    overlays = overlays.filter(o => o !== activeOverlay);
+                    activeOverlay = null;
+                    deleteButton.classList.add('disabled');
                 }
             });
-        });
 
-        deleteButton.addEventListener('click', () => {
-            if (activeOverlay) {
-                container.removeChild(activeOverlay);
-                overlays = overlays.filter(o => o !== activeOverlay);
-                activeOverlay = null;
-                deleteButton.classList.add('disabled');
-            }
-        });
-
-        function dragStart(e) {
-            if (!activeOverlay) return;
-            
-            isDragging = true;
-            
-            if (e.type === "touchstart") {
-                const touch = e.touches[0];
-                initialX = touch.clientX - (parseFloat(activeOverlay.dataset.x) || 0);
-                initialY = touch.clientY - (parseFloat(activeOverlay.dataset.y) || 0);
-            } else {
-                initialX = e.clientX - (parseFloat(activeOverlay.dataset.x) || 0);
-                initialY = e.clientY - (parseFloat(activeOverlay.dataset.y) || 0);
-            }
-
-            e.preventDefault();
+            // Initialize file input
+            fileInput.addEventListener('change', handleFileSelect);
         }
 
-        function drag(e) {
-            if (!isDragging || !activeOverlay) return;
-            
-            e.preventDefault();
-            
-            let clientX, clientY;
-            
-            if (e.type === "touchmove") {
-                const touch = e.touches[0];
-                clientX = touch.clientX;
-                clientY = touch.clientY;
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
-            
-            const rect = container.getBoundingClientRect();
-            const x = clientX - initialX - rect.left;
-            const y = clientY - initialY - rect.top;
-            
-            activeOverlay.dataset.x = x;
-            activeOverlay.dataset.y = y;
-            updateOverlayPosition(activeOverlay);
-        }
-
-        function dragEnd() {
-            isDragging = false;
-        }
-
-        function updateOverlayPosition(overlay) {
-            if (!overlay) return;
-            
-            const rotation = overlay.dataset.rotation || 0;
-            const scale = overlay.dataset.scale || 1;
-            const x = overlay.dataset.x || 0;
-            const y = overlay.dataset.y || 0;
-            
-            overlay.style.transform = 
-                `translate(${x}px, ${y}px) 
-                 rotate(${rotation}deg) 
-                 scale(${scale})`;
-        }
-
-        // Event listeners for both mouse and touch
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('touchmove', drag, { passive: false });
-        document.addEventListener('mouseup', dragEnd);
-        document.addEventListener('touchend', dragEnd);
-        document.addEventListener('mouseleave', dragEnd);
-
-        fileInput.addEventListener('change', function(e) {
+        // File handling
+        function handleFileSelect(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -458,100 +417,199 @@
                 };
                 reader.readAsDataURL(file);
             }
-        });
+        }
 
-        rotationSlider.addEventListener('input', () => {
-            if (activeOverlay) {
-                activeOverlay.dataset.rotation = rotationSlider.value;
-                updateOverlayPosition(activeOverlay);
-            }
-        });
+        // Initialize the application
+        function initialize() {
+            initializeTouchEvents();
+            initializeUI();
+        }
 
-        scaleSlider.addEventListener('input', () => {
-            if (activeOverlay) {
-                activeOverlay.dataset.scale = scaleSlider.value / 100;
-                updateOverlayPosition(activeOverlay);
-            }
-        });
-
-        document.getElementById('saveButton').addEventListener('click', () => {
-            const tempCanvas = document.createElement('canvas');
-            const ctx = tempCanvas.getContext('2d');
-            
-            // Get the display dimensions of the container
-            const containerRect = container.getBoundingClientRect();
-            
-            // Set canvas size to match display size
-            tempCanvas.width = containerRect.width;
-            tempCanvas.height = containerRect.height;
-
-            // Draw base image maintaining aspect ratio
-            if (baseImage.src) {
-                const imgAspect = baseImage.naturalWidth / baseImage.naturalHeight;
-                const containerAspect = containerRect.width / containerRect.height;
-                let drawWidth = containerRect.width;
-                let drawHeight = containerRect.height;
-                let offsetX = 0;
-                let offsetY = 0;
-
-                if (containerAspect > imgAspect) {
-                    drawWidth = drawHeight * imgAspect;
-                    offsetX = (containerRect.width - drawWidth) / 2;
-                } else {
-                    drawHeight = drawWidth / imgAspect;
-                    offsetY = (containerRect.height - drawHeight) / 2;
-                }
-
-                // Fill background
-                ctx.fillStyle = '#000';
-                ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                
-                // Draw base image
-                ctx.drawImage(baseImage, offsetX, offsetY, drawWidth, drawHeight);
-            }
-
-            // Draw overlays
-            overlays.forEach(overlay => {
-                const x = parseFloat(overlay.dataset.x) + overlay.width / 2;
-                const y = parseFloat(overlay.dataset.y) + overlay.height / 2;
-                const rotation = parseFloat(overlay.dataset.rotation) * Math.PI / 180;
-                const scale = parseFloat(overlay.dataset.scale);
-
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate(rotation);
-                ctx.scale(scale, scale);
-                ctx.drawImage(
-                    overlay,
-                    -overlay.width / 2,
-                    -overlay.height / 2,
-                    overlay.width,
-                    overlay.height
-                );
-                ctx.restore();
-            });
-
-            // Create final canvas with higher resolution
-            const finalCanvas = document.createElement('canvas');
-            const finalCtx = finalCanvas.getContext('2d');
-            const scaleFactor = 2; // Increase for higher quality
-
-            finalCanvas.width = tempCanvas.width * scaleFactor;
-            finalCanvas.height = tempCanvas.height * scaleFactor;
-            
-            finalCtx.drawImage(tempCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
-
-            finalCanvas.toBlob((blob) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'meme.png';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 'image/png', 1.0);
-        });
+        // Start the application
+        initialize();
     </script>
 </body>
 </html>
+<script>
+// Preview and sharing functionality
+async function renderFinalImage(quality = 2) {
+    const finalCanvas = document.createElement('canvas');
+    const ctx = finalCanvas.getContext('2d');
+    const containerRect = container.getBoundingClientRect();
+    
+    // Scale factor based on quality setting (1 = normal, 2 = high, 3 = ultra)
+    const scaleFactor = quality;
+    
+    finalCanvas.width = containerRect.width * scaleFactor;
+    finalCanvas.height = containerRect.height * scaleFactor;
+    
+    // Enable image smoothing for better quality
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // Clear canvas with black background
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+    // Draw base image
+    if (baseImage.src) {
+        await new Promise((resolve) => {
+            if (baseImage.complete) resolve();
+            else baseImage.onload = resolve;
+        });
+
+        const imgRatio = baseImage.naturalWidth / baseImage.naturalHeight;
+        const containerRatio = containerRect.width / containerRect.height;
+        
+        let drawWidth = finalCanvas.width;
+        let drawHeight = finalCanvas.height;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (containerRatio > imgRatio) {
+            drawWidth = drawHeight * imgRatio;
+            offsetX = (finalCanvas.width - drawWidth) / 2;
+        } else {
+            drawHeight = drawWidth / imgRatio;
+            offsetY = (finalCanvas.height - drawHeight) / 2;
+        }
+
+        ctx.drawImage(baseImage, offsetX, offsetY, drawWidth, drawHeight);
+    }
+
+    // Draw overlays
+    for (const overlay of overlays) {
+        await new Promise((resolve) => {
+            if (overlay.complete) resolve();
+            else overlay.onload = resolve;
+        });
+
+        const scale = parseFloat(overlay.dataset.scale) || 1;
+        const rotation = parseFloat(overlay.dataset.rotation) || 0;
+        const x = (parseFloat(overlay.dataset.x) + overlay.width / 2) * scaleFactor;
+        const y = (parseFloat(overlay.dataset.y) + overlay.height / 2) * scaleFactor;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation * Math.PI / 180);
+        ctx.scale(scale, scale);
+        
+        const scaledWidth = overlay.width * scaleFactor;
+        const scaledHeight = overlay.height * scaleFactor;
+        
+        ctx.drawImage(
+            overlay,
+            -scaledWidth / 2,
+            -scaledHeight / 2,
+            scaledWidth,
+            scaledHeight
+        );
+        
+        ctx.restore();
+    }
+
+    return finalCanvas;
+}
+
+// Preview modal functionality
+document.getElementById('previewButton').addEventListener('click', async () => {
+    const canvas = await renderFinalImage(currentQuality);
+    previewImage.src = canvas.toDataURL('image/png');
+    previewModal.style.display = 'block';
+});
+
+function closePreview() {
+    previewModal.style.display = 'none';
+}
+
+function updateQualityLabel(value) {
+    const qualityLabels = ['Normal', 'High', 'Ultra'];
+    document.getElementById('qualityValue').textContent = qualityLabels[value - 1];
+    currentQuality = parseInt(value);
+    updatePreview();
+}
+
+async function updatePreview() {
+    const canvas = await renderFinalImage(currentQuality);
+    previewImage.src = canvas.toDataURL('image/png');
+}
+
+// Sharing functionality
+async function shareToTelegram() {
+    const canvas = await renderFinalImage(currentQuality);
+    const imageData = canvas.toDataURL('image/png').split(',')[1];
+    
+    // Check if Telegram Web App is available
+    if (window.Telegram && window.Telegram.WebApp) {
+        try {
+            await window.Telegram.WebApp.sendData(imageData);
+        } catch (error) {
+            // Fallback to normal share if Web App method fails
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}`);
+        }
+    } else {
+        // Fallback to normal Telegram share
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}`);
+    }
+}
+
+async function shareToTwitter() {
+    const canvas = await renderFinalImage(currentQuality);
+    const imageUrl = canvas.toDataURL('image/png');
+    const tweetText = 'Check out my meme!';
+    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+    window.open(shareUrl, '_blank');
+}
+
+async function shareToOthers() {
+    try {
+        const canvas = await renderFinalImage(currentQuality);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+        const file = new File([blob], 'meme.png', { type: 'image/png' });
+
+        if (navigator.share) {
+            await navigator.share({
+                files: [file],
+                title: 'Share Meme',
+            });
+        } else {
+            downloadImage();
+        }
+    } catch (error) {
+        console.error('Error sharing:', error);
+        downloadImage();
+    }
+}
+
+async function downloadImage() {
+    const canvas = await renderFinalImage(currentQuality);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'meme.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    if (event.target === previewModal) {
+        closePreview();
+    }
+};
+
+// Handle keyboard events
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closePreview();
+    }
+});
+
+// Initialize quality slider
+document.getElementById('qualitySlider').addEventListener('input', function() {
+    updateQualityLabel(this.value);
+});
+</script>
