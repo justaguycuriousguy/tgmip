@@ -353,17 +353,17 @@
             const overlayX = parseFloat(overlay.dataset.x) || 0;
             const overlayY = parseFloat(overlay.dataset.y) || 0;
     
-            // Adjust the overlay's coordinates for the scaling factor
-            const x = (overlayX + overlay.width / 2) * scaleFactor;
-            const y = (overlayY + overlay.height / 2) * scaleFactor;
+            // Calculate overlay position in final canvas based on scaling factor
+            const finalOverlayX = (overlayX + containerRect.width / 2 - overlay.width / 2) * scaleFactor;
+            const finalOverlayY = (overlayY + containerRect.height / 2 - overlay.height / 2) * scaleFactor;
     
             // Apply transformations: translation, rotation, and scaling
             ctx.save();
-            ctx.translate(x, y);
+            ctx.translate(finalOverlayX, finalOverlayY);
             ctx.rotate((overlayRotation * Math.PI) / 180);
             ctx.scale(overlayScale * scaleFactor, overlayScale * scaleFactor);
     
-            // Draw the overlay at the adjusted position
+            // Draw the overlay centered at its calculated position
             ctx.drawImage(
                 overlay,
                 -overlay.width / 2,
@@ -378,6 +378,7 @@
         // Return the final canvas for preview or sharing
         return finalCanvas;
     }
+
 
     function closePreview() {
         previewModal.style.display = 'none';
