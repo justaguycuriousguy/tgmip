@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Meme Maker</title>
+    <title>Enhanced Meme Maker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -29,6 +29,8 @@
             -webkit-user-select: none;
             -webkit-touch-callout: none;
             touch-action: manipulation;
+            margin: 0;
+            padding: 0;
         }
 
         body {
@@ -36,10 +38,6 @@
             margin: 0;
             padding: 16px;
             background-color: var(--dark-bg);
-            background-image: 
-                linear-gradient(var(--grid-color) 2px, transparent 2px),
-                linear-gradient(90deg, var(--grid-color) 2px, transparent 2px);
-            background-size: 40px 40px;
             color: white;
             min-height: 100vh;
             overscroll-behavior: none;
@@ -70,6 +68,7 @@
             width: 100%;
             height: 100%;
             touch-action: none;
+            background: #000;
         }
 
         #memeCanvas {
@@ -79,6 +78,7 @@
             width: 100%;
             height: 100%;
             touch-action: none;
+            display: block;
         }
 
         .stogie-selector {
@@ -232,6 +232,7 @@
             backdrop-filter: blur(10px);
             touch-action: none;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .preview-content {
@@ -246,18 +247,26 @@
         }
 
         .preview-content h2 {
-            margin-top: 0;
+            margin: 0 0 20px 0;
             text-align: center;
             color: var(--neon-pink);
             text-transform: uppercase;
             letter-spacing: 2px;
+            font-size: 20px;
+        }
+
+        .preview-image-container {
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
         }
 
         .preview-image {
             width: 100%;
-            border-radius: 8px;
-            margin-bottom: 20px;
             display: block;
+            border-radius: 8px;
         }
 
         .share-options {
@@ -284,6 +293,20 @@
             letter-spacing: 1px;
         }
 
+        .share-button.download {
+            border-color: var(--neon-green);
+        }
+
+        .share-button.telegram {
+            background: rgba(0, 136, 204, 0.2);
+            border-color: #0088cc;
+        }
+
+        .share-button.twitter {
+            background: rgba(29, 161, 242, 0.2);
+            border-color: #1da1f2;
+        }
+
         .share-button:active {
             transform: scale(0.95);
             background: rgba(255, 255, 255, 0.2);
@@ -293,24 +316,23 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            background: none;
+            background: rgba(255, 255, 255, 0.1);
             border: none;
             color: white;
-            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
             cursor: pointer;
-            padding: 8px;
-            z-index: 1;
-            width: 40px;
-            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
+            font-size: 20px;
+            transition: all 0.2s ease;
         }
 
         .modal-close:active {
             transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .loading-overlay {
@@ -328,9 +350,9 @@
         }
 
         .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid var(--neon-blue);
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--neon-blue);
             border-top-color: transparent;
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -349,17 +371,13 @@
                 padding: 15px;
             }
 
+            .preview-content h2 {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+
             .share-button {
                 padding: 10px;
-                font-size: 12px;
-            }
-
-            .button {
-                padding: 14px;
-                font-size: 14px;
-            }
-
-            .slider-container label {
                 font-size: 12px;
             }
         }
@@ -419,16 +437,18 @@
         <div class="preview-content">
             <button class="modal-close" onclick="closePreview()">×</button>
             <h2>Preview & Share</h2>
-            <img id="previewImage" class="preview-image" alt="Preview">
+            <div class="preview-image-container">
+                <img id="previewImage" class="preview-image" alt="Preview">
+            </div>
             
             <div class="share-options">
-                <button class="share-button" onclick="downloadImage()">
+                <button class="share-button download" onclick="downloadImage()">
                     <i class="fas fa-download"></i> Download
                 </button>
-                <button class="share-button" onclick="shareToTelegram()">
+                <button class="share-button telegram" onclick="shareToTelegram()">
                     <i class="fab fa-telegram"></i> Telegram
                 </button>
-                <button class="share-button" onclick="shareToTwitter()">
+                <button class="share-button twitter" onclick="shareToTwitter()">
                     <i class="fab fa-twitter"></i> Twitter
                 </button>
                 <button class="share-button" onclick="shareToOthers()">
@@ -451,8 +471,7 @@
     let activeOverlay = null;
     let isDragging = false;
     let startX, startY;
-    let lastTouchDistance = null;
-    let lastTouchAngle = null;
+    let canvasScale = 1;
 
     // Initialize canvas with proper scaling
     function initializeCanvas() {
@@ -468,17 +487,18 @@
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         
-        // Scale context for retina displays
+        // Scale context
         ctx.scale(dpr, dpr);
+        canvasScale = dpr;
         
         drawCanvas();
     }
 
-    // Handle window resize
+    // Event listeners
     window.addEventListener('resize', initializeCanvas);
     window.addEventListener('orientationchange', initializeCanvas);
 
-    // File input handler with proper image scaling
+    // File input handler
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -499,14 +519,10 @@
         const displayWidth = canvas.width / dpr;
         const displayHeight = canvas.height / dpr;
 
-        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw background color
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw base image with proper scaling
         if (baseImage.src) {
             const imgRatio = baseImage.width / baseImage.height;
             const canvasRatio = displayWidth / displayHeight;
@@ -527,44 +543,10 @@
             ctx.drawImage(baseImage, x, y, drawWidth, drawHeight);
         }
 
-        // Draw overlays
         overlays.forEach(overlay => drawOverlay(overlay));
     }
 
-    // Draw overlay with proper scaling and positioning
-    function drawOverlay(overlay) {
-        ctx.save();
-        const dpr = window.devicePixelRatio || 1;
-        const x = overlay.x / dpr;
-        const y = overlay.y / dpr;
-
-        ctx.translate(x, y);
-        ctx.rotate(overlay.rotation * Math.PI / 180);
-        ctx.scale(overlay.scale, overlay.scale);
-
-        // Draw the overlay image
-        ctx.drawImage(
-            overlay.image,
-            -overlay.image.width / 2,
-            -overlay.image.height / 2
-        );
-
-        // Draw selection outline if active
-        if (overlay === activeOverlay) {
-            ctx.strokeStyle = 'var(--neon-pink)';
-            ctx.lineWidth = 2 / overlay.scale;
-            ctx.strokeRect(
-                -overlay.image.width / 2,
-                -overlay.image.height / 2,
-                overlay.image.width,
-                overlay.image.height
-            );
-        }
-
-        ctx.restore();
-    }
-
-    // Add overlay from stogie selector
+    // Add overlay from stogie selector with initial 50% size
     document.querySelectorAll('.stogie-option').forEach(option => {
         option.addEventListener('click', () => {
             const img = option.querySelector('img');
@@ -579,12 +561,13 @@
                         x: (canvas.width / dpr) / 2,
                         y: (canvas.height / dpr) / 2,
                         rotation: 0,
-                        scale: 1,
+                        scale: 0.5, // Start at 50% size
                         initialWidth: overlayImg.width,
                         initialHeight: overlayImg.height
                     };
                     overlays.push(overlay);
                     activeOverlay = overlay;
+                    document.getElementById('scaleSlider').value = 50; // Set slider to match
                     document.getElementById('deleteButton').classList.remove('disabled');
                     drawCanvas();
                 };
@@ -592,6 +575,183 @@
         });
     });
 
+    function drawOverlay(overlay) {
+        ctx.save();
+        const dpr = window.devicePixelRatio || 1;
+        const x = overlay.x / dpr;
+        const y = overlay.y / dpr;
+
+        ctx.translate(x, y);
+        ctx.rotate(overlay.rotation * Math.PI / 180);
+        ctx.scale(overlay.scale, overlay.scale);
+
+        ctx.drawImage(
+            overlay.image,
+            -overlay.image.width / 2,
+            -overlay.image.height / 2
+        );
+
+        if (overlay === activeOverlay) {
+            ctx.strokeStyle = 'var(--neon-pink)';
+            ctx.lineWidth = 2 / overlay.scale;
+            ctx.strokeRect(
+                -overlay.image.width / 2,
+                -overlay.image.height / 2,
+                overlay.image.width,
+                overlay.image.height
+            );
+        }
+
+        ctx.restore();
+    }
+
+    // Sharing functions
+    async function generateHighResCanvas() {
+        // Create a high-resolution canvas for export
+        const exportCanvas = document.createElement('canvas');
+        const exportCtx = exportCanvas.getContext('2d');
+        const scale = 2; // Higher resolution for export
+
+        exportCanvas.width = canvas.width * scale;
+        exportCanvas.height = canvas.height * scale;
+
+        // Scale everything up for higher resolution
+        exportCtx.scale(scale * canvasScale, scale * canvasScale);
+        
+        if (baseImage.src) {
+            const imgRatio = baseImage.width / baseImage.height;
+            const canvasRatio = canvas.width / canvas.height;
+            let drawWidth, drawHeight, x, y;
+
+            if (imgRatio > canvasRatio) {
+                drawWidth = canvas.width / canvasScale;
+                drawHeight = (canvas.width / canvasScale) / imgRatio;
+                x = 0;
+                y = (canvas.height / canvasScale - drawHeight) / 2;
+            } else {
+                drawHeight = canvas.height / canvasScale;
+                drawWidth = (canvas.height / canvasScale) * imgRatio;
+                x = (canvas.width / canvasScale - drawWidth) / 2;
+                y = 0;
+            }
+
+            exportCtx.drawImage(baseImage, x, y, drawWidth, drawHeight);
+        }
+
+        // Draw overlays at high resolution
+        overlays.forEach(overlay => {
+            exportCtx.save();
+            const x = overlay.x / canvasScale;
+            const y = overlay.y / canvasScale;
+            
+            exportCtx.translate(x, y);
+            exportCtx.rotate(overlay.rotation * Math.PI / 180);
+            exportCtx.scale(overlay.scale, overlay.scale);
+            
+            exportCtx.drawImage(
+                overlay.image,
+                -overlay.image.width / 2,
+                -overlay.image.height / 2
+            );
+            
+            exportCtx.restore();
+        });
+
+        return exportCanvas;
+    }
+
+    async function shareImage(method) {
+        const exportCanvas = await generateHighResCanvas();
+        
+        try {
+            const blob = await new Promise(resolve => 
+                exportCanvas.toBlob(resolve, 'image/png', 1.0)
+            );
+
+            switch (method) {
+                case 'download':
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = 'meme.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(downloadUrl);
+                    break;
+
+                case 'telegram':
+                    const telegramUrl = URL.createObjectURL(blob);
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        const formData = new FormData();
+                        formData.append('photo', blob, 'meme.png');
+                        window.Telegram.WebApp.sendData(formData);
+                    } else {
+                        window.open(`https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}`);
+                    }
+                    break;
+
+                case 'twitter':
+                    const twitterUrl = URL.createObjectURL(blob);
+                    window.open(`https://twitter.com/intent/tweet?text=Check%20out%20my%20meme!&url=${encodeURIComponent(twitterUrl)}`);
+                    break;
+
+                case 'share':
+                    if (navigator.share) {
+                        const file = new File([blob], 'meme.png', { type: 'image/png' });
+                        await navigator.share({
+                            files: [file],
+                            title: 'Share Meme'
+                        });
+                    } else {
+                        downloadImage();
+                    }
+                    break;
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
+            alert('Error sharing image. Please try downloading instead.');
+        }
+    }
+
+    // Preview and share handlers
+    document.getElementById('previewButton').addEventListener('click', async () => {
+        const exportCanvas = await generateHighResCanvas();
+        const previewImage = document.getElementById('previewImage');
+        previewImage.src = exportCanvas.toDataURL('image/png');
+        document.getElementById('previewModal').style.display = 'flex';
+    });
+
+    function closePreview() {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+
+    // Initialize the app
+    initializeCanvas();
+
+    // Handle controls
+    document.getElementById('rotationSlider').addEventListener('input', e => {
+        if (activeOverlay) {
+            activeOverlay.rotation = parseInt(e.target.value);
+            drawCanvas();
+        }
+    });
+
+    document.getElementById('scaleSlider').addEventListener('input', e => {
+        if (activeOverlay) {
+            activeOverlay.scale = e.target.value / 100;
+            drawCanvas();
+        }
+    });
+
+    document.getElementById('deleteButton').addEventListener('click', () => {
+        if (activeOverlay) {
+            overlays = overlays.filter(overlay => overlay !== activeOverlay);
+            activeOverlay = null;
+            document.getElementById('deleteButton').classList.add('disabled');
+            drawCanvas();
+        }
+    });
     // Handle touch events
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -715,6 +875,12 @@
 
     // Initialize
     initializeCanvas();
+</script>
+</body>
+</html>
+    // Add touch handling (from previous script)
+    // ... (include all the touch handling code from before)
+
 </script>
 </body>
 </html>
