@@ -301,7 +301,7 @@
         const finalCanvas = document.createElement('canvas');
         const ctx = finalCanvas.getContext('2d');
         
-        // Get the dimensions of the canvas container and scale it based on the quality setting
+        // Get the dimensions of the canvas container and apply the scaling factor
         const containerRect = container.getBoundingClientRect();
         const scaleFactor = quality;
         finalCanvas.width = containerRect.width * scaleFactor;
@@ -310,22 +310,23 @@
         // Enable high-quality image smoothing
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
+    
+        // Fill background color to avoid transparency issues
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
     
-        // Draw the base image with the appropriate aspect ratio
+        // Draw the base image with proper aspect ratio
         if (baseImage.src) {
             await new Promise((resolve) => {
                 if (baseImage.complete) resolve();
                 else baseImage.onload = resolve;
             });
     
-            // Calculate dimensions to keep the aspect ratio correct
+            // Calculate dimensions to fit base image in canvas
             const imgRatio = baseImage.naturalWidth / baseImage.naturalHeight;
-            const containerRatio = containerRect.width / containerRect.height;
             let drawWidth, drawHeight, offsetX, offsetY;
     
-            if (containerRatio > imgRatio) {
+            if (containerRect.width / containerRect.height > imgRatio) {
                 drawHeight = finalCanvas.height;
                 drawWidth = drawHeight * imgRatio;
                 offsetX = (finalCanvas.width - drawWidth) / 2;
@@ -340,34 +341,34 @@
             ctx.drawImage(baseImage, offsetX, offsetY, drawWidth, drawHeight);
         }
     
-        // Draw each overlay at the correct position, scale, and rotation
+        // Draw each overlay with accurate position, scale, and rotation
         for (const overlay of overlays) {
             await new Promise((resolve) => {
                 if (overlay.complete) resolve();
                 else overlay.onload = resolve;
             });
     
-            // Retrieve the overlay's attributes (position, rotation, and scale)
+            // Retrieve overlay properties: position, rotation, scale
             const overlayScale = parseFloat(overlay.dataset.scale) || 1;
             const overlayRotation = parseFloat(overlay.dataset.rotation) || 0;
             const overlayX = parseFloat(overlay.dataset.x) || 0;
             const overlayY = parseFloat(overlay.dataset.y) || 0;
     
-            // Calculate overlay position in final canvas based on scaling factor
-            const finalOverlayX = (overlayX + containerRect.width / 2 - overlay.width / 2) * scaleFactor;
-            const finalOverlayY = (overlayY + containerRect.height / 2 - overlay.height / 2) * scaleFactor;
+            // Adjust overlay's x, y coordinates relative to the canvas scale factor
+            const adjustedX = (overlayX + overlay.width / 2) * scaleFactor;
+            const adjustedY = (overlayY + overlay.height / 2) * scaleFactor;
     
-            // Apply transformations: translation, rotation, and scaling
+            // Translate overlay, apply rotation and scale based on the user-defined properties
             ctx.save();
-            ctx.translate(finalOverlayX, finalOverlayY);
+            ctx.translate(adjustedX, adjustedY);
             ctx.rotate((overlayRotation * Math.PI) / 180);
             ctx.scale(overlayScale * scaleFactor, overlayScale * scaleFactor);
     
-            // Draw the overlay centered at its calculated position
+            // Draw overlay centered at the transformed position
             ctx.drawImage(
                 overlay,
-                -overlay.width / 2,
-                -overlay.height / 2,
+                -overlay.width / 2, // Center alignment for X
+                -overlay.height / 2, // Center alignment for Y
                 overlay.width,
                 overlay.height
             );
@@ -375,9 +376,9 @@
             ctx.restore();  // Reset transformations for the next overlay
         }
     
-        // Return the final canvas for preview or sharing
-        return finalCanvas;
+        return finalCanvas; // Return the final canvas for preview or sharing
     }
+
 
 
     function closePreview() {
