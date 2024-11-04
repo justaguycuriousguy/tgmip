@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Stogie Meme Maker</title>
+    <!-- Load Telegram WebApp API -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/telegram-web-app/6.7.0/telegram-web-app.js"></script>
+    <style>
+        /* Styles for the app */
+        body {
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu;
+            margin: 0;
+            padding: 16px;
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            margin-bottom: 16px;
+            overflow: hidden;
+            border-radius: 8px;
+            touch-action: none;
+        }
+
+        #baseImage {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #cigarImage {
+            position: absolute;
+            width: 100px;
+            height: 20px;
+            cursor: move;
+            touch-action: none;
+            left: 50%;
+            top: 50%;
+            transform-origin: center;
+        }
+
+        .control-panel {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .button {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+
+        .slider-container {
+            margin: 12px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--tg-theme-hint-color, #999);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 36px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main app container -->
+    <div class="canvas-container" id="canvasContainer">
+        <img id="baseImage" alt="Base image">
+        <img id="cigarImage" src="/api/placeholder/100/20" alt="Cigar overlay">
+    </div>
+
+    <!-- Controls -->
+    <div class="control-panel">
+        <button class="button" id="uploadButton">Choose Image</button>
+        
+        <div class="slider-container">
+            <label>Rotation</label>
+            <input type="range" id="rotationSlider" min="0" max="360" value="0">
+        </div>
+
+        <div class="slider-container">
+            <label>Size</label>
+            <input type="range" id="scaleSlider" min="50" max="200" value="100">
+        </div>
+
+        <button class="button" id="saveButton">Save Meme</button>
+    </div>
+
+    <script>
+        // Initialize Telegram WebApp
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+        webapp.expand();
+
+        // Get DOM elements
+        const container = document.getElementById('canvasContainer');
+        const cigar = document.getElementById('cigarImage');
+        const baseImage = document.getElementById('baseImage');
+        const rotationSlider = document.getElementById('rotationSlider');
+        const scaleSlider = document.getElementById('scaleSlider');
+        const uploadButton = document.getElementById('uploadButton');
+        const saveButton = document.getElementById('saveButton');
+
+        // Variables for dragging
+        let isDragging = false;
+        let currentX = 0;
+        let currentY = 0;
+        let initialX = 0;
+        let initialY = 0;
+        let xOffset = 50;
+        let yOffset = 50;
+
+        // Setup drag handlers
+        function dragStart(e) {
+            if (e.type === "touchstart") {
+                initialX = e.touches[0].clientX - xOffset;
+                initialY = e.touches[0].clientY - yOffset;
+            } else {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+            }
+
+            if (e.target === cigar) {
+                isDragging = true;
+            }
+        }
+
+        function dragEnd() {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+
+                if (e.type === "touchmove") {
+                    currentX = e.touches[0].clientX - initialX;
+                    currentY = e.touches[0].clientY - initialY;
+                } else {
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                }
+
+                xOffset = currentX;
+                yOffset = currentY;
+                updateCigarPosition();
+            }
+        }
+
+        // Update cigar position and transformation
+        function updateCigarPosition() {
+            const rotation = rotationSlider.value;
+            const scale = scaleSlider.value / 100;
+            
+            cigar.style.transform = `translate(${xOffset}px, ${yOffset}px) rotate(${rotation}deg) scale(${scale})`;
+        }
+
+        // Add event listeners
+        container.addEventListener("touchstart", dragStart, false);
+        container.addEventListener("touchend", dragEnd, false);
+        container.addEventListener("touchmove", drag, false);
+        container.addEventListener("mousedown", dragStart, false);
+        container.addEventListener("mouseup", dragEnd, false);
+        container.addEventListener("mousemove", drag, false);
+
+        rotationSlider.addEventListener("input", updateCigarPosition);
+        scaleSlider.addEventListener("input", updateCigarPosition);
+
+        // Handle image upload
+        uploadButton.addEventListener("click", () => {
+            webapp.showPopup({
+                title: 'Upload Image',
+                message: 'Choose image source',
+                buttons: [
+                    {id: 'camera', type: 'default', text: 'Camera'},
+                    {id: 'gallery', type: 'default', text: 'Gallery'}
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'camera') {
+                    // In a real app, this would open the camera
+                    webapp.showAlert("Camera would open here");
+                } else if (buttonId === 'gallery') {
+                    // In a real app, this would open the gallery
+                    webapp.showAlert("Gallery would open here");
+                    // For demo, set a placeholder image
+                    baseImage.src = "/api/placeholder/400/300";
+                }
+            });
+        });
+
+        // Handle save
+        saveButton.addEventListener("click", () => {
+            webapp.showAlert("Meme saved! (Demo)");
+        });
+    </script>
+</body>
+</html>
