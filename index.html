@@ -7,31 +7,236 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/telegram-web-app/6.7.0/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Styles remain largely the same for neon theme and layout */
+        :root {
+            --neon-pink: #ff71ce;
+            --neon-blue: #01cdfe;
+            --neon-purple: #b967ff;
+            --neon-green: #05ffa1;
+            --dark-bg: #1a1a2e;
+            --grid-color: rgba(255, 113, 206, 0.1);
+            --modal-bg: rgba(26, 26, 46, 0.95);
+            --retrowave-gradient: linear-gradient(
+                45deg,
+                var(--neon-pink),
+                var(--neon-purple),
+                var(--neon-blue)
+            );
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+            margin: 0;
+            padding: 16px;
+            background-color: var(--dark-bg);
+            background-image: 
+                linear-gradient(var(--grid-color) 2px, transparent 2px),
+                linear-gradient(90deg, var(--grid-color) 2px, transparent 2px);
+            background-size: 40px 40px;
+            color: white;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vw * 0.75);
+            max-height: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            margin-bottom: 8px;
+            border-radius: 12px;
+            touch-action: none;
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            backdrop-filter: blur(5px);
+        }
+
+        #baseImage {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+        }
+
+        .stogie-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-pink);
+            border-radius: 12px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 0 10px var(--neon-pink);
+            backdrop-filter: blur(5px);
+        }
+
+        .stogie-option {
+            flex: 0 0 80px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--neon-purple);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 5px;
+        }
+
+        .stogie-option img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--modal-bg);
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .preview-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .preview-image {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .share-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .share-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .share-button.telegram {
+            background: #0088cc;
+        }
+
+        .share-button.twitter {
+            background: #1da1f2;
+        }
+
+        .quality-control {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .quality-control label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--neon-pink);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        @media (max-width: 480px) {
+            .preview-content {
+                padding: 15px;
+            }
+
+            .share-button {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .modal-close {
+                top: 5px;
+                right: 5px;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Main canvas and controls -->
     <div class="canvas-container" id="canvasContainer">
-        <img id="baseImage" alt="Your Image">
-        <div id="uploadPrompt">Tap below to add an image</div>
+        <div class="upload-area" id="uploadArea">
+            Click "Choose Image" to start
+        </div>
+        <img id="baseImage" style="display: none;">
     </div>
 
-    <!-- Stogie selector -->
     <div class="stogie-selector" id="stogieSelector">
         <div class="stogie-option">
             <img src="images/stogie.png" alt="Stogie 1" data-type="overlay">
         </div>
-        <!-- Add more stogie options as necessary -->
+        <div class="stogie-option">
+            <img src="images/stogie2.png" alt="Stogie 2" data-type="overlay">
+        </div>
+        <div class="stogie-option">
+            <img src="images/stogie3.png" alt="Stogie 3" data-type="overlay">
+        </div>
+        <div class="stogie-option">
+            <img src="images/glasses.png" alt="Glasses" data-type="overlay">
+        </div>
     </div>
 
-    <!-- Controls -->
     <div class="control-panel">
         <input type="file" id="fileInput" accept="image/*" style="display: none;">
         <button class="button" onclick="document.getElementById('fileInput').click()">
             <i class="fas fa-image"></i> Choose Image
         </button>
-
+        
         <div class="slider-container">
             <label>Rotation</label>
             <input type="range" id="rotationSlider" min="0" max="360" value="0">
@@ -51,7 +256,6 @@
         </button>
     </div>
 
-    <!-- Preview Modal -->
     <div class="preview-modal" id="previewModal">
         <div class="preview-content">
             <button class="modal-close" onclick="closePreview()">×</button>
@@ -87,6 +291,7 @@
         const scaleSlider = document.getElementById('scaleSlider');
         const fileInput = document.getElementById('fileInput');
         const baseImage = document.getElementById('baseImage');
+        const uploadArea = document.getElementById('uploadArea');
         const deleteButton = document.getElementById('deleteButton');
         const previewModal = document.getElementById('previewModal');
         const previewImage = document.getElementById('previewImage');
@@ -104,7 +309,7 @@
                 reader.onload = function(event) {
                     baseImage.src = event.target.result;
                     baseImage.style.display = 'block';
-                    document.getElementById('uploadPrompt').style.display = 'none';
+                    uploadArea.style.display = 'none';
                 };
                 reader.readAsDataURL(file);
             }
@@ -202,9 +407,95 @@
             previewModal.style.display = 'block';
         });
 
-        // Additional code for sharing and downloading remains the same
+        function closePreview() {
+            previewModal.style.display = 'none';
+        }
+
+        function updateQualityLabel(value) {
+            const qualityLabels = ['Normal', 'High', 'Ultra'];
+            document.getElementById('qualityValue').textContent = qualityLabels[value - 1];
+            currentQuality = parseInt(value);
+            updatePreview();
+        }
+
+        async function updatePreview() {
+            const canvas = await renderFinalImage(currentQuality);
+            previewImage.src = canvas.toDataURL('image/png');
+        }
+
+        async function shareToTelegram() {
+            const canvas = await renderFinalImage(currentQuality);
+            const imageData = canvas.toDataURL('image/png').split(',')[1];
+            
+            if (window.Telegram && window.Telegram.WebApp) {
+                try {
+                    await window.Telegram.WebApp.sendData(imageData);
+                } catch (error) {
+                    window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}`);
+                }
+            } else {
+                window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}`);
+            }
+        }
+
+        async function shareToTwitter() {
+            const canvas = await renderFinalImage(currentQuality);
+            const imageUrl = canvas.toDataURL('image/png');
+            const tweetText = 'Check out my meme!';
+            const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+            window.open(shareUrl, '_blank');
+        }
+
+        async function shareToOthers() {
+            try {
+                const canvas = await renderFinalImage(currentQuality);
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                const file = new File([blob], 'meme.png', { type: 'image/png' });
+
+                if (navigator.share) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Share Meme',
+                    });
+                } else {
+                    downloadImage();
+                }
+            } catch (error) {
+                console.error('Error sharing:', error);
+                downloadImage();
+            }
+        }
+
+        async function downloadImage() {
+            const canvas = await renderFinalImage(currentQuality);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'meme.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        window.onclick = function(event) {
+            if (event.target === previewModal) {
+                closePreview();
+            }
+        };
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closePreview();
+            }
+        });
+
+        document.getElementById('qualitySlider').addEventListener('input', function() {
+            updateQualityLabel(this.value);
+        });
+
         initializeUI();
     </script>
 </body>
 </html>
-
