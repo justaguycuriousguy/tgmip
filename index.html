@@ -2,18 +2,195 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Enhanced Meme Maker</title>
+    <title>Vaporwave Meme Maker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <!-- Include Font Awesome for icons -->
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Styles -->
     <style>
-        /* Your styles remain largely the same */
-        /* ... (Include your CSS styles here) ... */
+        :root {
+            --neon-pink: #ff71ce;
+            --neon-blue: #01cdfe;
+            --neon-purple: #b967ff;
+            --neon-green: #05ffa1;
+            --dark-bg: #1a1a2e;
+            --grid-color: rgba(255, 113, 206, 0.1);
+            --modal-bg: rgba(26, 26, 46, 0.95);
+            --retrowave-gradient: linear-gradient(
+                45deg,
+                var(--neon-pink),
+                var(--neon-purple),
+                var(--neon-blue)
+            );
+        }
 
-        /* Additional styles for sliders */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+            margin: 0;
+            padding: 16px;
+            background-color: var(--dark-bg);
+            background-image: 
+                linear-gradient(var(--grid-color) 2px, transparent 2px),
+                linear-gradient(90deg, var(--grid-color) 2px, transparent 2px);
+            background-size: 40px 40px;
+            color: white;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        /* Canvas container */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vw * 0.75);
+            max-height: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            margin-bottom: 8px;
+            border-radius: 12px;
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Base image and overlay styles */
+        #baseImage {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .overlay-image {
+            position: absolute;
+            width: 150px;
+            height: auto;
+            cursor: move;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(0deg) scale(1);
+            z-index: 1000;
+            user-select: none;
+            -webkit-user-select: none;
+            pointer-events: all;
+            transform-origin: center;
+            transition: outline-color 0.3s ease;
+        }
+
+        .overlay-image.selected {
+            outline: 2px solid var(--neon-pink);
+            outline-offset: 2px;
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
+
+        /* Upload area */
+        .upload-area {
+            text-align: center;
+            padding: 40px;
+            color: var(--neon-blue);
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--neon-blue);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Stogie selector */
+        .stogie-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-pink);
+            border-radius: 12px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 0 10px var(--neon-pink);
+            backdrop-filter: blur(5px);
+        }
+
+        .stogie-option {
+            flex: 0 0 80px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--neon-purple);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .stogie-option img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* Control panel styles */
+        .control-panel {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            backdrop-filter: blur(5px);
+        }
+
+        .button {
+            background: var(--retrowave-gradient);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .button:active {
+            transform: scale(0.98);
+            box-shadow: 0 0 20px var(--neon-purple);
+        }
+
+        .delete-button.disabled {
+            background: #333;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
         .slider-container {
             margin: 12px 0;
         }
@@ -35,8 +212,6 @@
             border-radius: 8px;
             outline: none;
             border: 1px solid var(--neon-blue);
-            margin: 0;
-            padding: 0;
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -58,60 +233,82 @@
             border: none;
         }
 
-        /* Style for overlay images */
-        .overlay-image {
-            position: absolute;
-            width: 150px;
-            height: auto;
-            cursor: move;
-            touch-action: none;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
+        /* Preview modal */
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--modal-bg);
             z-index: 1000;
-            user-select: none;
-            -webkit-user-select: none;
-            pointer-events: all;
-            transform-origin: center;
-            transition: outline-color 0.3s ease;
-            will-change: transform;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
         }
 
-        .overlay-image.selected {
-            outline: 2px solid var(--neon-pink);
-            outline-offset: 2px;
-            box-shadow: 0 0 15px var(--neon-pink);
-        }
-
-        /* Ensure the base image allows overlays to be positioned over it */
-        #baseImage {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-            pointer-events: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        /* Upload area styling */
-        .upload-area {
+        .preview-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
             text-align: center;
-            padding: 40px;
-            color: var(--neon-blue);
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px var(--neon-blue);
-            position: absolute;
-            top: 0;
-            left: 0;
+        }
+
+        .preview-image {
             width: 100%;
-            height: 100%;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .share-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .share-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Media Queries */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            .canvas-container {
+                height: calc(100vw * 0.8);
+            }
+
+            .button {
+                padding: 15px 20px;
+                font-size: 14px;
+            }
+
+            .overlay-image {
+                width: 120px;
+            }
+
+            .upload-area {
+                font-size: 16px;
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -148,12 +345,12 @@
         </button>
 
         <div class="slider-container">
-            <label for="rotationSlider">Rotation: <span id="rotationValue">0°</span></label>
+            <label>Rotation</label>
             <input type="range" id="rotationSlider" min="0" max="360" value="0">
         </div>
 
         <div class="slider-container">
-            <label for="scaleSlider">Size: <span id="scaleValue">100%</span></label>
+            <label>Size</label>
             <input type="range" id="scaleSlider" min="50" max="200" value="100">
         </div>
 
@@ -173,326 +370,296 @@
             <h2>Preview & Share</h2>
             <img id="previewImage" class="preview-image" alt="Preview">
             
-            <div class="quality-control">
-                <label>Quality: <span id="qualityValue">High</span></label>
-                <input type="range" id="qualitySlider" min="1" max="3" value="2" onInput="updateQualityLabel(this.value)">
-            </div>
-
-            <div class="share-options">
-                <button class="share-button telegram" onclick="shareToTelegram()">
-                    <i class="fab fa-telegram"></i> Telegram
-                </button>
-                <button class="share-button twitter" onclick="shareToTwitter()">
-                    <i class="fab fa-twitter"></i> Twitter
-                </button>
-                <button class="share-button" onclick="shareToOthers()">
-                    <i class="fas fa-share-alt"></i> Share
-                </button>
-                <button class="share-button" onclick="downloadImage()">
-                    <i class="fas fa-download"></i> Download
-                </button>
-            </div>
+            <button class="share-button telegram" onclick="shareToTelegram()">
+                <i class="fab fa-telegram"></i> Telegram
+            </button>
+            <button class="share-button twitter" onclick="shareToTwitter()">
+                <i class="fab fa-twitter"></i> Twitter
+            </button>
+            <button class="share-button" onclick="downloadImage()">
+                <i class="fas fa-download"></i> Download
+            </button>
         </div>
     </div>
-
-    <!-- Scripts -->
     <script>
-        const container = document.getElementById('canvasContainer');
-        const rotationSlider = document.getElementById('rotationSlider');
-        const scaleSlider = document.getElementById('scaleSlider');
-        const rotationValue = document.getElementById('rotationValue');
-        const scaleValue = document.getElementById('scaleValue');
-        const fileInput = document.getElementById('fileInput');
-        const baseImage = document.getElementById('baseImage');
-        const uploadArea = document.getElementById('uploadArea');
-        const deleteButton = document.getElementById('deleteButton');
-        const previewModal = document.getElementById('previewModal');
-        const previewImage = document.getElementById('previewImage');
-        
-        let activeOverlay = null;
-        let overlays = [];
-        let isDragging = false;
-        let initialX = 0;
-        let initialY = 0;
-        let currentQuality = 2;
+    const container = document.getElementById('canvasContainer');
+    const rotationSlider = document.getElementById('rotationSlider');
+    const scaleSlider = document.getElementById('scaleSlider');
+    const fileInput = document.getElementById('fileInput');
+    const baseImage = document.getElementById('baseImage');
+    const uploadArea = document.getElementById('uploadArea');
+    const deleteButton = document.getElementById('deleteButton');
+    const previewModal = document.getElementById('previewModal');
+    const previewImage = document.getElementById('previewImage');
 
-        // Function to create an overlay image
-        function createOverlay(source) {
-            const overlay = document.createElement('img');
-            overlay.src = source;
-            overlay.className = 'overlay-image';
-            overlay.dataset.x = 0;
-            overlay.dataset.y = 0;
-            overlay.dataset.rotation = 0;
-            overlay.dataset.scale = 1;
-            overlay.style.transform = 'translate(-50%, -50%) rotate(0deg) scale(1)';
-            
-            container.appendChild(overlay);
-            overlays.push(overlay);
-            
-            overlay.addEventListener('mousedown', handleStart);
-            overlay.addEventListener('touchstart', handleStart, { passive: false });
-            
-            return overlay;
-        }
+    let activeOverlay = null;
+    let overlays = [];
+    let isDragging = false;
+    let initialX = 0;
+    let initialY = 0;
 
-        // Function to select an overlay image
-        function selectOverlay(overlay) {
-            overlays.forEach(o => o.classList.remove('selected'));
-            overlay.classList.add('selected');
-            activeOverlay = overlay;
-            deleteButton.classList.remove('disabled');
-            rotationSlider.value = overlay.dataset.rotation || 0;
-            scaleSlider.value = (overlay.dataset.scale || 1) * 100;
-            rotationValue.textContent = `${rotationSlider.value}°`;
-            scaleValue.textContent = `${scaleSlider.value}%`;
-        }
+    // Function to create and display overlay on top of the base image
+    function createOverlay(source) {
+        const overlay = document.createElement('img');
+        overlay.src = source;
+        overlay.className = 'overlay-image';
+        overlay.dataset.x = 0;
+        overlay.dataset.y = 0;
+        overlay.dataset.rotation = 0;
+        overlay.dataset.scale = 1;
 
-        // Event handler for starting drag
-        function handleStart(e) {
-            const overlay = e.target;
-            selectOverlay(overlay);
+        container.appendChild(overlay);
+        overlays.push(overlay);
+
+        overlay.addEventListener('mousedown', handleStart);
+        overlay.addEventListener('touchstart', handleStart, { passive: false });
+
+        selectOverlay(overlay);
+        return overlay;
+    }
+
+    // Selecting an overlay for transformation
+    function selectOverlay(overlay) {
+        overlays.forEach(o => o.classList.remove('selected'));
+        overlay.classList.add('selected');
+        activeOverlay = overlay;
+        deleteButton.classList.remove('disabled');
+        rotationSlider.value = overlay.dataset.rotation || 0;
+        scaleSlider.value = (overlay.dataset.scale || 1) * 100;
+    }
+
+    // Drag start function
+    function handleStart(e) {
+        if (e.target.classList.contains('overlay-image')) {
+            selectOverlay(e.target);
             dragStart(e);
         }
+    }
 
-        // Event handler for dragging
-        function dragStart(e) {
-            if (!activeOverlay) return;
-            
-            isDragging = true;
-            
-            if (e.type === "touchstart") {
-                const touch = e.touches[0];
-                initialX = touch.clientX - (parseFloat(activeOverlay.dataset.x) || 0);
-                initialY = touch.clientY - (parseFloat(activeOverlay.dataset.y) || 0);
-            } else {
-                initialX = e.clientX - (parseFloat(activeOverlay.dataset.x) || 0);
-                initialY = e.clientY - (parseFloat(activeOverlay.dataset.y) || 0);
-            }
+    // Dragging the overlay
+    function dragStart(e) {
+        if (!activeOverlay) return;
 
-            e.preventDefault();
+        isDragging = true;
+
+        if (e.type === "touchstart") {
+            const touch = e.touches[0];
+            initialX = touch.clientX - (parseFloat(activeOverlay.dataset.x) || 0);
+            initialY = touch.clientY - (parseFloat(activeOverlay.dataset.y) || 0);
+        } else {
+            initialX = e.clientX - (parseFloat(activeOverlay.dataset.x) || 0);
+            initialY = e.clientY - (parseFloat(activeOverlay.dataset.y) || 0);
         }
 
-        // Function to handle drag movement
-        function drag(e) {
-            if (!isDragging || !activeOverlay) return;
-            
-            e.preventDefault();
-            
-            let clientX, clientY;
-            
-            if (e.type === "touchmove") {
-                const touch = e.touches[0];
-                clientX = touch.clientX;
-                clientY = touch.clientY;
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
+        e.preventDefault();
+    }
+
+    function drag(e) {
+        if (!isDragging || !activeOverlay) return;
+
+        e.preventDefault();
+
+        let clientX, clientY;
+
+        if (e.type === "touchmove") {
+            const touch = e.touches[0];
+            clientX = touch.clientX;
+            clientY = touch.clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        const rect = container.getBoundingClientRect();
+        const x = clientX - initialX - rect.left;
+        const y = clientY - initialY - rect.top;
+
+        activeOverlay.dataset.x = x;
+        activeOverlay.dataset.y = y;
+        updateOverlayPosition(activeOverlay);
+    }
+
+    function dragEnd() {
+        isDragging = false;
+    }
+
+    function updateOverlayPosition(overlay) {
+        if (!overlay) return;
+
+        const rotation = overlay.dataset.rotation || 0;
+        const scale = overlay.dataset.scale || 1;
+        const x = overlay.dataset.x || 0;
+        const y = overlay.dataset.y || 0;
+
+        overlay.style.transform = 
+            `translate(${x}px, ${y}px) 
+             rotate(${rotation}deg) 
+             scale(${scale})`;
+    }
+
+    // Event listeners for dragging
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('touchmove', drag, { passive: false });
+    document.addEventListener('mouseup', dragEnd);
+    document.addEventListener('touchend', dragEnd);
+
+    // Handling the file input for base image
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                baseImage.src = event.target.result;
+                baseImage.style.display = 'block';
+                uploadArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Overlay option selection
+    document.querySelectorAll('.stogie-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const img = option.querySelector('img');
+            if (img) {
+                createOverlay(img.src);
             }
-            
-            const rect = container.getBoundingClientRect();
-            const x = clientX - initialX - rect.left;
-            const y = clientY - initialY - rect.top;
-            
-            activeOverlay.dataset.x = x;
-            activeOverlay.dataset.y = y;
+        });
+    });
+
+    // Deleting selected overlay
+    deleteButton.addEventListener('click', () => {
+        if (activeOverlay) {
+            container.removeChild(activeOverlay);
+            overlays = overlays.filter(o => o !== activeOverlay);
+            activeOverlay = null;
+            deleteButton.classList.add('disabled');
+        }
+    });
+
+    rotationSlider.addEventListener('input', () => {
+        if (activeOverlay) {
+            activeOverlay.dataset.rotation = rotationSlider.value;
             updateOverlayPosition(activeOverlay);
         }
+    });
 
-        // Function to end drag
-        function dragEnd() {
-            isDragging = false;
+    scaleSlider.addEventListener('input', () => {
+        if (activeOverlay) {
+            activeOverlay.dataset.scale = scaleSlider.value / 100;
+            updateOverlayPosition(activeOverlay);
         }
+    });
 
-        // Function to update overlay position and transformations
-        function updateOverlayPosition(overlay) {
-            if (!overlay) return;
-            
-            const rotation = overlay.dataset.rotation || 0;
-            const scale = overlay.dataset.scale || 1;
-            const x = overlay.dataset.x || 0;
-            const y = overlay.dataset.y || 0;
-            
-            overlay.style.transform = 
-                `translate(${x}px, ${y}px) 
-                 rotate(${rotation}deg) 
-                 scale(${scale})`;
-        }
+    // Render the final image with all overlays
+    async function renderFinalImage(quality = 2) {
+        const finalCanvas = document.createElement('canvas');
+        const ctx = finalCanvas.getContext('2d');
+        const containerRect = container.getBoundingClientRect();
+        
+        const scaleFactor = quality;
+        finalCanvas.width = containerRect.width * scaleFactor;
+        finalCanvas.height = containerRect.height * scaleFactor;
 
-        // Event listeners for drag events
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('touchmove', drag, { passive: false });
-        document.addEventListener('mouseup', dragEnd);
-        document.addEventListener('touchend', dragEnd);
-        document.addEventListener('mouseleave', dragEnd);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-        // Handle file input change
-        fileInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    baseImage.src = event.target.result;
-                    baseImage.style.display = 'block';
-                    uploadArea.style.display = 'none';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Handle overlay options click
-        document.querySelectorAll('.stogie-option').forEach(option => {
-            option.addEventListener('click', () => {
-                const img = option.querySelector('img');
-                if (img) {
-                    const overlay = createOverlay(img.src);
-                    selectOverlay(overlay);
-                }
+        if (baseImage.src) {
+            await new Promise((resolve) => {
+                if (baseImage.complete) resolve();
+                else baseImage.onload = resolve;
             });
-        });
 
-        // Handle delete button click
-        deleteButton.addEventListener('click', () => {
-            if (activeOverlay) {
-                container.removeChild(activeOverlay);
-                overlays = overlays.filter(o => o !== activeOverlay);
-                activeOverlay = null;
-                deleteButton.classList.add('disabled');
+            const imgRatio = baseImage.naturalWidth / baseImage.naturalHeight;
+            let drawWidth = finalCanvas.width;
+            let drawHeight = finalCanvas.height;
+            let offsetX = 0;
+            let offsetY = 0;
+
+            if (drawWidth / drawHeight > imgRatio) {
+                drawWidth = drawHeight * imgRatio;
+                offsetX = (finalCanvas.width - drawWidth) / 2;
+            } else {
+                drawHeight = drawWidth / imgRatio;
+                offsetY = (finalCanvas.height - drawHeight) / 2;
             }
-        });
 
-        // Handle rotation slider change
-        rotationSlider.addEventListener('input', () => {
-            if (activeOverlay) {
-                activeOverlay.dataset.rotation = rotationSlider.value;
-                rotationValue.textContent = `${rotationSlider.value}°`;
-                updateOverlayPosition(activeOverlay);
-            }
-        });
+            ctx.drawImage(baseImage, offsetX, offsetY, drawWidth, drawHeight);
+        }
 
-        // Handle scale slider change
-        scaleSlider.addEventListener('input', () => {
-            if (activeOverlay) {
-                activeOverlay.dataset.scale = scaleSlider.value / 100;
-                scaleValue.textContent = `${scaleSlider.value}%`;
-                updateOverlayPosition(activeOverlay);
-            }
-        });
+        for (const overlay of overlays) {
+            await new Promise((resolve) => {
+                if (overlay.complete) resolve();
+                else overlay.onload = resolve;
+            });
 
-        // Function to render the final image
-        async function renderFinalImage(quality = 2) {
-            const finalCanvas = document.createElement('canvas');
-            const ctx = finalCanvas.getContext('2d');
-            const containerRect = container.getBoundingClientRect();
+            const scale = parseFloat(overlay.dataset.scale) || 1;
+            const rotation = parseFloat(overlay.dataset.rotation) || 0;
+            const x = (parseFloat(overlay.dataset.x) + overlay.width / 2) * scaleFactor;
+            const y = (parseFloat(overlay.dataset.y) + overlay.height / 2) * scaleFactor;
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation * Math.PI / 180);
+            ctx.scale(scale * scaleFactor, scale * scaleFactor);
             
-            const scaleFactor = quality;
-            finalCanvas.width = containerRect.width * scaleFactor;
-            finalCanvas.height = containerRect.height * scaleFactor;
-    
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-    
-            if (baseImage.src) {
-                await new Promise((resolve) => {
-                    if (baseImage.complete) resolve();
-                    else baseImage.onload = resolve;
-                });
-    
-                const imgRatio = baseImage.naturalWidth / baseImage.naturalHeight;
-                let drawWidth = finalCanvas.width;
-                let drawHeight = finalCanvas.height;
-                let offsetX = 0;
-                let offsetY = 0;
-    
-                if (drawWidth / drawHeight > imgRatio) {
-                    drawWidth = drawHeight * imgRatio;
-                    offsetX = (finalCanvas.width - drawWidth) / 2;
-                } else {
-                    drawHeight = drawWidth / imgRatio;
-                    offsetY = (finalCanvas.height - drawHeight) / 2;
-                }
-    
-                ctx.drawImage(baseImage, offsetX, offsetY, drawWidth, drawHeight);
-            }
-    
-            for (const overlay of overlays) {
-                await new Promise((resolve) => {
-                    if (overlay.complete) resolve();
-                    else overlay.onload = resolve;
-                });
-                
-                const scale = parseFloat(overlay.dataset.scale) || 1;
-                const rotation = parseFloat(overlay.dataset.rotation) || 0;
-                const x = (parseFloat(overlay.dataset.x) + overlay.width / 2) * scaleFactor;
-                const y = (parseFloat(overlay.dataset.y) + overlay.height / 2) * scaleFactor;
-    
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate(rotation * Math.PI / 180);
-                ctx.scale(scale * scaleFactor, scale * scaleFactor);
-                
-                ctx.drawImage(
-                    overlay,
-                    -overlay.width / 2,
-                    -overlay.height / 2,
-                    overlay.width,
-                    overlay.height
-                );
-                
-                ctx.restore();
-            }
-    
-            return finalCanvas;
+            ctx.drawImage(
+                overlay,
+                -overlay.width / 2,
+                -overlay.height / 2,
+                overlay.width,
+                overlay.height
+            );
+
+            ctx.restore();
         }
 
-        // Handle preview button click
-        document.getElementById('previewButton').addEventListener('click', async () => {
-            const canvas = await renderFinalImage(currentQuality);
-            previewImage.src = canvas.toDataURL('image/png');
-            previewModal.style.display = 'block';
-        });
+        return finalCanvas;
+    }
 
-        // Function to close preview
-        function closePreview() {
-            previewModal.style.display = 'none';
+    // Preview the rendered image
+    document.getElementById('previewButton').addEventListener('click', async () => {
+        const canvas = await renderFinalImage(2);
+        previewImage.src = canvas.toDataURL('image/png');
+        previewModal.style.display = 'flex';
+    });
+
+    // Close the preview modal
+    function closePreview() {
+        previewModal.style.display = 'none';
+    }
+
+    // Download the rendered image
+    async function downloadImage() {
+        const canvas = await renderFinalImage(2);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'meme.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Close preview modal when clicking outside or pressing Escape
+    window.onclick = function(event) {
+        if (event.target === previewModal) {
+            closePreview();
         }
+    };
 
-        // Update quality label
-        function updateQualityLabel(value) {
-            const qualityLabels = ['Normal', 'High', 'Ultra'];
-            document.getElementById('qualityValue').textContent = qualityLabels[value - 1];
-            currentQuality = parseInt(value);
-            updatePreview();
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closePreview();
         }
-
-        // Update preview image when quality changes
-        async function updatePreview() {
-            const canvas = await renderFinalImage(currentQuality);
-            previewImage.src = canvas.toDataURL('image/png');
-        }
-
-        // Sharing functions remain the same as before
-        // ...
-
-        // Event listeners for modal interactions
-        window.onclick = function(event) {
-            if (event.target === previewModal) {
-                closePreview();
-            }
-        };
-    
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closePreview();
-            }
-        });
-    
-        document.getElementById('qualitySlider').addEventListener('input', function() {
-            updateQualityLabel(this.value);
-        });
-    </script>
+    });
+</script>
 </body>
 </html>
+
+
 
