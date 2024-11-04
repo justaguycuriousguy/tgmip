@@ -31,29 +31,19 @@
             object-fit: contain;
         }
 
-        .stogie {
+        #stogieImage {
             position: absolute;
             width: 150px;
-            height: 30px;
+            height: auto;
             cursor: move;
             touch-action: none;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
-            background-color: #8B4513;
-            border-radius: 5px;
             z-index: 1000;
-        }
-
-        .stogie::after {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 30px;
-            height: 100%;
-            background-color: #D2691E;
-            border-radius: 0 5px 5px 0;
+            user-select: none;
+            -webkit-user-select: none;
+            pointer-events: all;
         }
 
         .control-panel {
@@ -95,6 +85,10 @@
             padding: 20px;
             color: #666;
         }
+
+        #fileInput {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -103,11 +97,12 @@
             Click "Choose Image" to start
         </div>
         <img id="baseImage" style="display: none;">
-        <div class="stogie" id="stogie"></div>
+        <!-- Update the src to point to your image in the repository -->
+        <img id="stogieImage" src="images/stogie.png" alt="Stogie">
     </div>
 
     <div class="control-panel">
-        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        <input type="file" id="fileInput" accept="image/*">
         <button class="button" onclick="document.getElementById('fileInput').click()">Choose Image</button>
         
         <div class="slider-container">
@@ -124,14 +119,14 @@
     </div>
 
     <script>
-        const stogie = document.getElementById('stogie');
+        const stogie = document.getElementById('stogieImage');
         const container = document.getElementById('canvasContainer');
         const rotationSlider = document.getElementById('rotationSlider');
         const scaleSlider = document.getElementById('scaleSlider');
         const fileInput = document.getElementById('fileInput');
         const baseImage = document.getElementById('baseImage');
         const uploadArea = document.getElementById('uploadArea');
-
+        
         let isDragging = false;
         let currentX = 0;
         let currentY = 0;
@@ -154,7 +149,6 @@
             }
         });
 
-        // Drag functionality
         function dragStart(e) {
             if (e.type === "touchstart") {
                 initialX = e.touches[0].clientX - xOffset;
@@ -202,7 +196,6 @@
                  scale(${scale})`;
         }
 
-        // Event listeners
         stogie.addEventListener('mousedown', dragStart);
         stogie.addEventListener('touchstart', dragStart, { passive: false });
         document.addEventListener('mousemove', drag);
@@ -213,7 +206,6 @@
         rotationSlider.addEventListener('input', updateStogiePosition);
         scaleSlider.addEventListener('input', updateStogiePosition);
 
-        // Save functionality
         document.getElementById('saveButton').addEventListener('click', () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -239,16 +231,12 @@
             ctx.rotate(rotationSlider.value * Math.PI / 180);
             const scale = scaleSlider.value / 100;
             ctx.scale(scale, scale);
-
-            // Draw stogie shape
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(-75, -15, 150, 30);
-            ctx.fillStyle = '#D2691E';
-            ctx.fillRect(45, -15, 30, 30);
+            
+            ctx.drawImage(stogie, -stogie.width/2, -stogie.height/2);
             
             ctx.restore();
 
-            // Download image
+            // Save image
             canvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -262,6 +250,7 @@
         });
     </script>
 </body>
+</html>
 </html>
     </script>
 </body>
