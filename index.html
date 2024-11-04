@@ -145,12 +145,17 @@
         }
     }
 
-    // Handle dragging
+    // Handle drag and touch for mobile and desktop
     let isDragging = false, startX, startY;
     canvas.addEventListener('mousedown', startDrag);
     canvas.addEventListener('mousemove', drag);
     canvas.addEventListener('mouseup', endDrag);
+    canvas.addEventListener('touchstart', startDrag, { passive: false });
+    canvas.addEventListener('touchmove', drag, { passive: false });
+    canvas.addEventListener('touchend', endDrag);
+
     function startDrag(e) {
+        e.preventDefault();
         const [mouseX, mouseY] = getMousePos(e);
         activeOverlay = overlays.find(overlay => isOverlayClicked(overlay, mouseX, mouseY));
         if (activeOverlay) {
@@ -161,16 +166,21 @@
     }
     function drag(e) {
         if (!isDragging || !activeOverlay) return;
+        e.preventDefault();
         const [mouseX, mouseY] = getMousePos(e);
         activeOverlay.x = mouseX - startX;
         activeOverlay.y = mouseY - startY;
         drawCanvas();
     }
     function endDrag() { isDragging = false; }
+
     function getMousePos(e) {
         const rect = canvas.getBoundingClientRect();
-        return [e.clientX - rect.left, e.clientY - rect.top];
+        const x = e.touches ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
+        const y = e.touches ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+        return [x, y];
     }
+
     function isOverlayClicked(overlay, x, y) {
         const dx = x - overlay.x;
         const dy = y - overlay.y;
@@ -216,5 +226,6 @@
 </script>
 </body>
 </html>
+
 
 
