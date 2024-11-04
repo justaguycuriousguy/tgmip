@@ -4,36 +4,260 @@
     <meta charset="UTF-8">
     <title>Vaporwave Meme Maker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <!-- Styles -->
     <style>
-        /* Include the CSS styles here (provided in the next part) */
+        :root {
+            --neon-pink: #ff71ce;
+            --neon-blue: #01cdfe;
+            --neon-purple: #b967ff;
+            --neon-green: #05ffa1;
+            --dark-bg: #1a1a2e;
+            --grid-color: rgba(255, 113, 206, 0.1);
+            --modal-bg: rgba(26, 26, 46, 0.95);
+            --retrowave-gradient: linear-gradient(
+                45deg,
+                var(--neon-pink),
+                var(--neon-purple),
+                var(--neon-blue)
+            );
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+            margin: 0;
+            padding: 16px;
+            background-color: var(--dark-bg);
+            background-image: 
+                linear-gradient(var(--grid-color) 2px, transparent 2px),
+                linear-gradient(90deg, var(--grid-color) 2px, transparent 2px);
+            background-size: 40px 40px;
+            color: white;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 16px auto;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
+            overflow: hidden;
+        }
+
+        #memeCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            touch-action: none;
+        }
+
+        .stogie-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-pink);
+            border-radius: 12px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 0 10px var(--neon-pink);
+            backdrop-filter: blur(5px);
+        }
+
+        .stogie-option {
+            flex: 0 0 80px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--neon-purple);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 5px;
+        }
+
+        .stogie-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--neon-purple);
+        }
+
+        .stogie-option img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .control-panel {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            backdrop-filter: blur(5px);
+            max-width: 800px;
+            margin: 16px auto;
+        }
+
+        .button {
+            background: var(--retrowave-gradient);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px var(--neon-purple);
+        }
+
+        .delete-button {
+            background: linear-gradient(45deg, #ff0844, #ffb199);
+        }
+
+        .slider-container {
+            margin: 12px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--neon-pink);
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 36px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            outline: none;
+            border: 1px solid var(--neon-blue);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: var(--neon-purple);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--modal-bg);
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .preview-content {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .preview-image {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .share-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .share-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            .button {
+                padding: 15px 20px;
+                font-size: 14px;
+            }
+
+            .preview-content {
+                padding: 15px;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Canvas Container -->
-    <div class="canvas-container" id="canvasContainer">
-        <canvas id="memeCanvas"></canvas>
-        <div class="upload-area" id="uploadArea">
-            Click "Choose Image" to start
-        </div>
+    <div class="canvas-container">
+        <canvas id="memeCanvas" width="800" height="600"></canvas>
     </div>
 
-    <!-- Stogie Selector -->
-    <div class="stogie-selector" id="stogieSelector">
-        <!-- Overlay options will be inserted here -->
-    </div>
-
-    <!-- Control Panel -->
     <div class="control-panel">
-        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        <input type="file" id="fileInput" accept="image/*">
         <button class="button" onclick="document.getElementById('fileInput').click()">
             <i class="fas fa-image"></i> Choose Image
         </button>
-
+        
         <div class="slider-container">
             <label>Rotation</label>
             <input type="range" id="rotationSlider" min="0" max="360" value="0">
@@ -44,583 +268,350 @@
             <input type="range" id="scaleSlider" min="50" max="200" value="100">
         </div>
 
-        <button class="button delete-button disabled" id="deleteButton">
+        <button class="button delete-button" id="deleteButton" onclick="deleteOverlay()">
             <i class="fas fa-trash"></i> Delete Selected
         </button>
 
-        <button class="button" id="previewButton">
+        <button class="button" onclick="openPreview()">
             <i class="fas fa-eye"></i> Preview & Share
         </button>
+    </div>
+
+    <div class="stogie-selector" id="stogieSelector">
+        <div class="stogie-option">
+            <img src="images/stogie.png" alt="Stogie 1" data-src="images/stogie.png">
+        </div>
+        <div class="stogie-option">
+            <img src="images/stogie2.png" alt="Stogie 2" data-src="images/stogie2.png">
+        </div>
+        <div class="stogie-option">
+            <img src="images/stogie3.png" alt="Stogie 3" data-src="images/stogie3.png">
+        </div>
+        <div class="stogie-option">
+            <img src="images/glasses.png" alt="Glasses" data-src="images/glasses.png">
+        </div>
     </div>
 
     <!-- Preview Modal -->
     <div class="preview-modal" id="previewModal">
         <div class="preview-content">
-            <button class="modal-close" onclick="closePreview()">×</button>
+            <button class="button" onclick="closePreview()" style="width: auto; float: right;">
+                <i class="fas fa-times"></i>
+            </button>
             <h2>Preview & Share</h2>
-            <img id="previewImage" class="preview-image" alt="Preview">
-
-            <button class="share-button" onclick="downloadImage()">
-                <i class="fas fa-download"></i> Download
-            </button>
-            <button class="share-button" onclick="shareToTwitter()">
-                <i class="fab fa-twitter"></i> Twitter
-            </button>
-            <button class="share-button" onclick="shareNative()">
-                <i class="fas fa-share-alt"></i> Share
-            </button>
+            <img id="previewImage" class="preview-image">
+            
+            <div class="share-options">
+                <button class="share-button" onclick="downloadImage()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="share-button" onclick="shareToTelegram()">
+                    <i class="fab fa-telegram"></i> Telegram
+                </button>
+                <button class="share-button" onclick="shareToTwitter()">
+                    <i class="fab fa-twitter"></i> Twitter
+                </button>
+                <button class="share-button" onclick="shareToOthers()">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script>
-        // Include the JavaScript code here (provided in Part 3)
+        const canvas = document.getElementById('memeCanvas');
+        const ctx = canvas.getContext('2d');
+        const baseImage = new Image();
+        let overlays = [];
+        let activeOverlay = null;
+        let isDragging = false;
+        let startX, startY;
+
+        // Initialize canvas size
+        function initCanvas() {
+            const container = canvas.parentElement;
+            const ratio = 4/3; // Standard aspect ratio
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+            canvas.width = 800;  // Base width
+            canvas.height = canvas.width / ratio;
+        }
+
+        // Initialize touch events
+        function initTouchEvents() {
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd);
+        }
+
+        // Handle file upload
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    baseImage.src = event.target.result;
+                    baseImage.onload = () => {
+                        drawCanvas();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Draw canvas
+        function drawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            if (baseImage.src) {
+                const scale = Math.min(
+                    canvas.width / baseImage.width,
+                    canvas.height / baseImage.height
+                );
+                const x = (canvas.width - baseImage.width * scale) / 2;
+                const y = (canvas.height - baseImage.height * scale) / 2;
+                
+                ctx.drawImage(baseImage, x, y, 
+                    baseImage.width * scale,
+                    baseImage.height * scale
+                );
+            } else {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Draw overlays
+            overlays.forEach(drawOverlay);
+        }
+
+        function drawOverlay(overlay) {
+            ctx.save();
+            ctx.translate(overlay.x, overlay.y);
+            ctx.rotate((overlay.rotation * Math.PI) / 180);
+            ctx.scale(overlay.scale, overlay.scale);
+            ctx.drawImage(
+                overlay.image,
+                -overlay.image.width / 2,
+                -overlay.image.height / 2
+            );
+            if (overlay === activeOverlay) {
+                ctx.strokeStyle = 'var(--neon-pink)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    -overlay.image.width / 2,
+                    -overlay.image.height / 2,
+                    overlay.image.width,
+                    overlay.image.height
+                );
+            }
+            ctx.restore();
+        }
+
+        // Initialize canvas and events
+        initCanvas();
+        initTouchEvents();
+        javascript
+        // Touch and mouse event handlers
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const [mouseX, mouseY] = getMousePos(touch);
+            startDrag(mouseX, mouseY);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDragging) return;
+            const touch = e.touches[0];
+            const [mouseX, mouseY] = getMousePos(touch);
+            drag(mouseX, mouseY);
+        }
+
+        function handleTouchEnd() {
+            endDrag();
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const [mouseX, mouseY] = getMousePos(e);
+            startDrag(mouseX, mouseY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const [mouseX, mouseY] = getMousePos(e);
+            drag(mouseX, mouseY);
+        });
+
+        canvas.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('mouseleave', endDrag);
+
+        function startDrag(mouseX, mouseY) {
+            // Check if clicked on an overlay
+            activeOverlay = overlays.slice().reverse().find(overlay => 
+                isOverlayClicked(overlay, mouseX, mouseY)
+            );
+            
+            if (activeOverlay) {
+                isDragging = true;
+                startX = mouseX - activeOverlay.x;
+                startY = mouseY - activeOverlay.y;
+                drawCanvas(); // Redraw to show selection
+            }
+        }
+
+        function drag(mouseX, mouseY) {
+            if (!activeOverlay) return;
+            activeOverlay.x = mouseX - startX;
+            activeOverlay.y = mouseY - startY;
+            drawCanvas();
+        }
+
+        function endDrag() {
+            isDragging = false;
+        }
+
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return [
+                (e.clientX - rect.left) * scaleX,
+                (e.clientY - rect.top) * scaleY
+            ];
+        }
+
+        function isOverlayClicked(overlay, x, y) {
+            // Transform point to overlay's coordinate space
+            const dx = x - overlay.x;
+            const dy = y - overlay.y;
+            
+            // Rotate point
+            const angle = -overlay.rotation * Math.PI / 180;
+            const rotatedX = dx * Math.cos(angle) - dy * Math.sin(angle);
+            const rotatedY = dx * Math.sin(angle) + dy * Math.cos(angle);
+            
+            // Check if point is within scaled bounds
+            const scaledWidth = overlay.image.width * overlay.scale;
+            const scaledHeight = overlay.image.height * overlay.scale;
+            
+            return Math.abs(rotatedX) <= scaledWidth / 2 &&
+                   Math.abs(rotatedY) <= scaledHeight / 2;
+        }
+
+        // Add stogie overlays
+        document.querySelectorAll('.stogie-option img').forEach(img => {
+            img.addEventListener('click', () => {
+                const overlayImg = new Image();
+                overlayImg.src = img.dataset.src;
+                overlayImg.onload = () => {
+                    const overlay = {
+                        image: overlayImg,
+                        x: canvas.width / 2,
+                        y: canvas.height / 2,
+                        rotation: 0,
+                        scale: 1
+                    };
+                    overlays.push(overlay);
+                    activeOverlay = overlay;
+                    drawCanvas();
+                };
+            });
+        });
+
+        // Handle slider controls
+        document.getElementById('rotationSlider').addEventListener('input', e => {
+            if (activeOverlay) {
+                activeOverlay.rotation = parseInt(e.target.value);
+                drawCanvas();
+            }
+        });
+
+        document.getElementById('scaleSlider').addEventListener('input', e => {
+            if (activeOverlay) {
+                activeOverlay.scale = e.target.value / 100;
+                drawCanvas();
+            }
+        });
+
+        // Delete overlay
+        function deleteOverlay() {
+            if (activeOverlay) {
+                overlays = overlays.filter(overlay => overlay !== activeOverlay);
+                activeOverlay = null;
+                drawCanvas();
+            }
+        }
+
+        // Preview and sharing functions
+        function openPreview() {
+            const previewModal = document.getElementById('previewModal');
+            const previewImage = document.getElementById('previewImage');
+            previewImage.src = canvas.toDataURL('image/png');
+            previewModal.style.display = 'flex';
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'meme.png';
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function shareToOthers() {
+            try {
+                const blob = await new Promise(resolve => 
+                    canvas.toBlob(resolve, 'image/png', 1.0)
+                );
+                const file = new File([blob], 'meme.png', { type: 'image/png' });
+
+                if (navigator.share) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Share Meme'
+                    });
+                } else {
+                    downloadImage();
+                }
+            } catch (error) {
+                console.error('Error sharing:', error);
+                downloadImage();
+            }
+        }
+
+        function shareToTelegram() {
+            const imageUrl = canvas.toDataURL('image/png');
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.sendData(imageUrl);
+            } else {
+                window.open('https://t.me/share/url?url=' + encodeURIComponent(window.location.href));
+            }
+        }
+
+        function shareToTwitter() {
+            const text = 'Check out my meme!';
+            const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+            window.open(url, '_blank');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('previewModal')) {
+                closePreview();
+            }
+        };
+
+        // Initial canvas draw
+        drawCanvas();
     </script>
 </body>
 </html>
-:root {
-    --neon-pink: #ff71ce;
-    --neon-blue: #01cdfe;
-    --neon-purple: #b967ff;
-    --neon-green: #05ffa1;
-    --dark-bg: #1a1a2e;
-    --grid-color: rgba(255, 113, 206, 0.1);
-    --modal-bg: rgba(26, 26, 46, 0.95);
-    --retrowave-gradient: linear-gradient(45deg, var(--neon-pink), var(--neon-purple), var(--neon-blue));
-}
-
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-    margin: 0;
-    padding: 16px;
-    background-color: var(--dark-bg);
-    background-image:
-        linear-gradient(var(--grid-color) 2px, transparent 2px),
-        linear-gradient(90deg, var(--grid-color) 2px, transparent 2px);
-    background-size: 40px 40px;
-    color: white;
-    min-height: 100vh;
-    touch-action: manipulation;
-}
-
-.canvas-container {
-    position: relative;
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto 16px;
-    border-radius: 12px;
-    border: 2px solid var(--neon-blue);
-    box-shadow: 0 0 15px var(--neon-blue);
-    overflow: hidden;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
-}
-
-#memeCanvas {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-.upload-area {
-    text-align: center;
-    padding: 40px;
-    color: var(--neon-blue);
-    font-size: 18px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 0 0 10px var(--neon-blue);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-.stogie-selector {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--neon-pink);
-    border-radius: 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    box-shadow: 0 0 10px var(--neon-pink);
-    backdrop-filter: blur(5px);
-}
-
-.stogie-option {
-    flex: 0 0 80px;
-    height: 50px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid var(--neon-purple);
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    padding: 5px;
-    transition: all 0.3s ease;
-}
-
-.stogie-option img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    pointer-events: none;
-}
-
-.control-panel {
-    background: rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    border: 1px solid var(--neon-green);
-    box-shadow: 0 0 10px var(--neon-green);
-    backdrop-filter: blur(5px);
-}
-
-.button {
-    background: var(--retrowave-gradient);
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 16px;
-    width: 100%;
-    margin-bottom: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    font-weight: bold;
-    letter-spacing: 1px;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-}
-
-.button:active {
-    transform: scale(0.98);
-    box-shadow: 0 0 20px var(--neon-purple);
-}
-
-.delete-button.disabled {
-    background: #333;
-    cursor: not-allowed;
-    opacity: 0.5;
-}
-
-.slider-container {
-    margin: 12px 0;
-}
-
-.slider-container label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--neon-pink);
-    text-transform: uppercase;
-    font-size: 14px;
-    letter-spacing: 1px;
-}
-
-input[type="range"] {
-    width: 100%;
-    height: 36px;
-    -webkit-appearance: none;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    outline: none;
-    border: 1px solid var(--neon-blue);
-}
-
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 24px;
-    height: 24px;
-    background: var(--neon-purple);
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 0 10px var(--neon-purple);
-    border: none;
-    margin-top: -8px;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    border: none;
-}
-
-.preview-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--modal-bg);
-    z-index: 1000;
-    padding: 20px;
-    backdrop-filter: blur(10px);
-    align-items: center;
-    justify-content: center;
-}
-
-.preview-content {
-    max-width: 600px;
-    margin: 0 auto;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid var(--neon-blue);
-    box-shadow: 0 0 20px var(--neon-blue);
-    text-align: center;
-}
-
-.preview-image {
-    width: 100%;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-.share-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--neon-purple);
-    color: white;
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 10px 0;
-}
-
-.share-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-}
-
-.modal-close {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    background: none;
-    border: none;
-    font-size: 30px;
-    color: var(--neon-blue);
-    cursor: pointer;
-}
-
-@media (max-width: 480px) {
-    body {
-        padding: 8px;
-    }
-
-    .canvas-container {
-        height: auto;
-    }
-
-    .button {
-        padding: 15px 20px;
-        font-size: 14px;
-    }
-
-    .stogie-option {
-        flex: 0 0 60px;
-        height: 40px;
-    }
-
-    .upload-area {
-        font-size: 16px;
-        padding: 20px;
-    }
-}
-const canvas = document.getElementById('memeCanvas');
-const ctx = canvas.getContext('2d');
-const container = document.getElementById('canvasContainer');
-const rotationSlider = document.getElementById('rotationSlider');
-const scaleSlider = document.getElementById('scaleSlider');
-const fileInput = document.getElementById('fileInput');
-const uploadArea = document.getElementById('uploadArea');
-const deleteButton = document.getElementById('deleteButton');
-const previewModal = document.getElementById('previewModal');
-const previewImage = document.getElementById('previewImage');
-
-let baseImage = new Image();
-let overlays = [];
-let activeOverlay = null;
-let isDragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-
-// Resize canvas to fit container
-function resizeCanvas() {
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    drawCanvas();
-}
-
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-// Load base image
-fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            baseImage.src = event.target.result;
-            baseImage.onload = () => {
-                uploadArea.style.display = 'none';
-                drawCanvas();
-            };
-        };
-        reader.readAsDataURL(file);
-    }
-});
-
-// Draw canvas
-function drawCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw base image
-    if (baseImage.src) {
-        const imgRatio = baseImage.width / baseImage.height;
-        let drawWidth, drawHeight, offsetX, offsetY;
-
-        if (canvas.width / canvas.height > imgRatio) {
-            drawHeight = canvas.height;
-            drawWidth = drawHeight * imgRatio;
-            offsetX = (canvas.width - drawWidth) / 2;
-            offsetY = 0;
-        } else {
-            drawWidth = canvas.width;
-            drawHeight = drawWidth / imgRatio;
-            offsetX = 0;
-            offsetY = (canvas.height - drawHeight) / 2;
-        }
-        ctx.drawImage(baseImage, offsetX, offsetY, drawWidth, drawHeight);
-    }
-
-    // Draw overlays
-    overlays.forEach(overlay => {
-        ctx.save();
-        ctx.translate(overlay.x, overlay.y);
-        ctx.rotate((overlay.rotation * Math.PI) / 180);
-        ctx.scale(overlay.scale, overlay.scale);
-        ctx.drawImage(overlay.image, -overlay.image.width / 2, -overlay.image.height / 2);
-        ctx.restore();
-    });
-}
-
-// Add overlay from stogie selection
-function addOverlay(src) {
-    const overlayImg = new Image();
-    overlayImg.src = src;
-    overlayImg.onload = () => {
-        const overlay = {
-            image: overlayImg,
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            rotation: 0,
-            scale: 1
-        };
-        overlays.push(overlay);
-        selectOverlay(overlay);
-        drawCanvas();
-    };
-}
-
-// Select an overlay
-function selectOverlay(overlay) {
-    activeOverlay = overlay;
-    deleteButton.classList.remove('disabled');
-    rotationSlider.value = overlay.rotation;
-    scaleSlider.value = overlay.scale * 100;
-}
-
-// Deselect overlay
-function deselectOverlay() {
-    activeOverlay = null;
-    deleteButton.classList.add('disabled');
-    rotationSlider.value = 0;
-    scaleSlider.value = 100;
-}
-
-// Delete selected overlay
-deleteButton.addEventListener('click', () => {
-    if (activeOverlay) {
-        overlays = overlays.filter(o => o !== activeOverlay);
-        deselectOverlay();
-        drawCanvas();
-    }
-});
-
-// Handle overlay interaction
-canvas.addEventListener('mousedown', startDrag);
-canvas.addEventListener('touchstart', startDrag, { passive: false });
-
-function startDrag(e) {
-    e.preventDefault();
-    const pos = getMousePos(e);
-    for (let i = overlays.length - 1; i >= 0; i--) {
-        const overlay = overlays[i];
-        if (isPointInOverlay(pos.x, pos.y, overlay)) {
-            selectOverlay(overlay);
-            isDragging = true;
-            dragStartX = pos.x - overlay.x;
-            dragStartY = pos.y - overlay.y;
-            break;
-        }
-    }
-}
-
-canvas.addEventListener('mousemove', drag);
-canvas.addEventListener('touchmove', drag, { passive: false });
-
-function drag(e) {
-    if (!isDragging || !activeOverlay) return;
-    e.preventDefault();
-    const pos = getMousePos(e);
-    activeOverlay.x = pos.x - dragStartX;
-    activeOverlay.y = pos.y - dragStartY;
-    drawCanvas();
-}
-
-canvas.addEventListener('mouseup', endDrag);
-canvas.addEventListener('touchend', endDrag);
-
-function endDrag() {
-    isDragging = false;
-}
-
-function getMousePos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-        x: ((clientX - rect.left) / rect.width) * canvas.width,
-        y: ((clientY - rect.top) / rect.height) * canvas.height
-    };
-}
-
-function isPointInOverlay(x, y, overlay) {
-    ctx.save();
-    ctx.translate(overlay.x, overlay.y);
-    ctx.rotate((overlay.rotation * Math.PI) / 180);
-    ctx.scale(overlay.scale, overlay.scale);
-    ctx.beginPath();
-    ctx.rect(-overlay.image.width / 2, -overlay.image.height / 2, overlay.image.width, overlay.image.height);
-    const isInPath = ctx.isPointInPath(x, y);
-    ctx.restore();
-    return isInPath;
-}
-
-// Update overlay rotation and scale
-rotationSlider.addEventListener('input', () => {
-    if (activeOverlay) {
-        activeOverlay.rotation = rotationSlider.value;
-        drawCanvas();
-    }
-});
-
-scaleSlider.addEventListener('input', () => {
-    if (activeOverlay) {
-        activeOverlay.scale = scaleSlider.value / 100;
-        drawCanvas();
-    }
-});
-
-// Populate stogie selector
-const stogieImages = [
-    'images/stogie.png',
-    'images/stogie2.png',
-    'images/stogie3.png',
-    'images/glasses.png'
-];
-
-const stogieSelector = document.getElementById('stogieSelector');
-stogieImages.forEach(src => {
-    const option = document.createElement('div');
-    option.classList.add('stogie-option');
-    const img = document.createElement('img');
-    img.src = src;
-    option.appendChild(img);
-    option.addEventListener('click', () => addOverlay(src));
-    stogieSelector.appendChild(option);
-});
-
-// Preview functionality
-document.getElementById('previewButton').addEventListener('click', () => {
-    const dataURL = canvas.toDataURL('image/png');
-    previewImage.src = dataURL;
-    previewModal.style.display = 'flex';
-});
-
-function closePreview() {
-    previewModal.style.display = 'none';
-}
-
-// Download image
-function downloadImage() {
-    const link = document.createElement('a');
-    link.download = 'meme.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-}
-
-// Share to Twitter
-function shareToTwitter() {
-    const url = 'https://twitter.com/intent/tweet?text=Check out my meme!';
-    window.open(url, '_blank');
-}
-
-// Native share
-async function shareNative() {
-    if (navigator.share) {
-        canvas.toBlob(async (blob) => {
-            const file = new File([blob], 'meme.png', { type: 'image/png' });
-            try {
-                await navigator.share({
-                    files: [file],
-                    title: 'Share Meme',
-                });
-            } catch (error) {
-                console.error('Error sharing:', error);
-            }
-        });
-    } else {
-        alert('Share not supported on this browser');
-    }
-}
-
-// Close modal when clicking outside or pressing Escape
-window.addEventListener('click', (e) => {
-    if (e.target === previewModal) {
-        closePreview();
-    }
-});
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        closePreview();
-    }
-});
-
 
 
 
