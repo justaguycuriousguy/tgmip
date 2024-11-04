@@ -164,6 +164,21 @@
         rotationSlider.value = overlay.dataset.rotation || 0;
         scaleSlider.value = (overlay.dataset.scale || 1) * 100;
     }
+    // Event listener for the Preview button to open the preview modal
+    document.getElementById('previewButton').addEventListener('click', async () => {
+        try {
+            // Generate the final image canvas for preview
+            const canvas = await renderFinalImage(2);
+            
+            // Convert the canvas to a data URL and set it as the source of the preview image
+            previewImage.src = canvas.toDataURL('image/png');
+            
+            // Display the preview modal
+            previewModal.style.display = 'flex';
+        } catch (error) {
+            console.error("Error generating preview:", error);
+        }
+    });
 
     function handleStart(e) {
         if (e.target.classList.contains('overlay-image')) {
