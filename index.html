@@ -282,58 +282,73 @@
         }
     });
     async function renderFinalImage(quality = 2) {
+        // Create a new canvas for rendering the final image
         const finalCanvas = document.createElement('canvas');
         const ctx = finalCanvas.getContext('2d');
-        const containerRect = container.getBoundingClientRect();
         
+        // Get the dimensions of the canvas container and scale it based on the quality setting
+        const containerRect = container.getBoundingClientRect();
         const scaleFactor = quality;
         finalCanvas.width = containerRect.width * scaleFactor;
         finalCanvas.height = containerRect.height * scaleFactor;
-
+    
+        // Enable high-quality image smoothing
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-
+    
+        // Draw the base image with the appropriate aspect ratio
         if (baseImage.src) {
             await new Promise((resolve) => {
                 if (baseImage.complete) resolve();
                 else baseImage.onload = resolve;
             });
-
+    
+            // Calculate dimensions to keep the aspect ratio correct
             const imgRatio = baseImage.naturalWidth / baseImage.naturalHeight;
-            let drawWidth = finalCanvas.width;
-            let drawHeight = finalCanvas.height;
-            let offsetX = 0;
-            let offsetY = 0;
-
-            if (drawWidth / drawHeight > imgRatio) {
+            const containerRatio = containerRect.width / containerRect.height;
+            let drawWidth, drawHeight, offsetX, offsetY;
+    
+            if (containerRatio > imgRatio) {
+                drawHeight = finalCanvas.height;
                 drawWidth = drawHeight * imgRatio;
                 offsetX = (finalCanvas.width - drawWidth) / 2;
+                offsetY = 0;
             } else {
+                drawWidth = finalCanvas.width;
                 drawHeight = drawWidth / imgRatio;
+                offsetX = 0;
                 offsetY = (finalCanvas.height - drawHeight) / 2;
             }
-
+    
             ctx.drawImage(baseImage, offsetX, offsetY, drawWidth, drawHeight);
         }
-
+    
+        // Draw each overlay at the correct position, scale, and rotation
         for (const overlay of overlays) {
             await new Promise((resolve) => {
                 if (overlay.complete) resolve();
                 else overlay.onload = resolve;
             });
-
-            const scale = parseFloat(overlay.dataset.scale) || 1;
-            const rotation = parseFloat(overlay.dataset.rotation) || 0;
-            const x = (parseFloat(overlay.dataset.x) + overlay.width / 2) * scaleFactor;
-            const y = (parseFloat(overlay.dataset.y) + overlay.height / 2) * scaleFactor;
-
+    
+            // Retrieve the overlay's attributes (position, rotation, and scale)
+            const overlayScale = parseFloat(overlay.dataset.scale) || 1;
+            const overlayRotation = parseFloat(overlay.dataset.rotation) || 0;
+            const overlayX = parseFloat(overlay.dataset.x) || 0;
+            const overlayY = parseFloat(overlay.dataset.y) || 0;
+    
+            // Adjust the overlay's coordinates for the scaling factor
+            const x = (overlayX + overlay.width / 2) * scaleFactor;
+            const y = (overlayY + overlay.height / 2) * scaleFactor;
+    
+            // Apply transformations: translation, rotation, and scaling
             ctx.save();
             ctx.translate(x, y);
-            ctx.rotate(rotation * Math.PI / 180);
-            ctx.scale(scale * scaleFactor, scale * scaleFactor);
-            
+            ctx.rotate((overlayRotation * Math.PI) / 180);
+            ctx.scale(overlayScale * scaleFactor, overlayScale * scaleFactor);
+    
+            // Draw the overlay at the adjusted position
             ctx.drawImage(
                 overlay,
                 -overlay.width / 2,
@@ -341,18 +356,13 @@
                 overlay.width,
                 overlay.height
             );
-
-            ctx.restore();
+    
+            ctx.restore();  // Reset transformations for the next overlay
         }
-
+    
+        // Return the final canvas for preview or sharing
         return finalCanvas;
     }
-
-    document.getElementById('previewButton').addEventListener('click', async () => {
-        const canvas = await renderFinalImage(2);
-        previewImage.src = canvas.toDataURL('image/png');
-        previewModal.style.display = 'flex';
-    });
 
     function closePreview() {
         previewModal.style.display = 'none';
