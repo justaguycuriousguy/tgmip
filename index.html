@@ -12,14 +12,16 @@
             --neon-purple: #b967ff;
             --neon-green: #05ffa1;
             --dark-bg: #1a1a2e;
-            --modal-bg: rgba(26, 26, 46, 0.95);
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: "Segoe UI", sans-serif; margin: 0; padding: 16px; background-color: var(--dark-bg); color: white; }
         .canvas-container { position: relative; width: 100%; max-width: 600px; margin: auto; }
         #memeCanvas { width: 100%; border: 2px solid var(--neon-blue); border-radius: 12px; }
-        .control-panel { display: flex; justify-content: space-around; margin-top: 16px; }
-        .button { background: var(--neon-purple); color: white; padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; }
+        .control-panel { display: flex; flex-direction: column; align-items: center; margin-top: 16px; }
+        .button { background: var(--neon-purple); color: white; padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; margin: 5px 0; }
+        .slider-container { width: 80%; margin: 8px 0; }
+        .slider-container label { color: var(--neon-pink); display: block; font-size: 14px; margin-bottom: 4px; }
+        input[type="range"] { width: 100%; }
     </style>
 </head>
 <body>
@@ -29,19 +31,34 @@
     
     <div class="control-panel">
         <input type="file" id="fileInput" accept="image/*" style="display: none;">
-        <button class="button" onclick="document.getElementById('fileInput').click()">Choose Image</button>
+        <button class="button" onclick="document.getElementById('fileInput').click()">Choose Background Image</button>
         <button class="button" onclick="addOverlay()">Add Overlay</button>
         <button class="button" onclick="saveMeme()">Save Image</button>
+        
+        <div class="slider-container">
+            <label for="rotationSlider">Rotation</label>
+            <input type="range" id="rotationSlider" min="0" max="360" value="0">
+        </div>
+
+        <div class="slider-container">
+            <label for="scaleSlider">Size</label>
+            <input type="range" id="scaleSlider" min="50" max="200" value="100">
+        </div>
     </div>
 
 <script>
     const canvas = document.getElementById('memeCanvas');
     const ctx = canvas.getContext('2d');
+    const rotationSlider = document.getElementById('rotationSlider');
+    const scaleSlider = document.getElementById('scaleSlider');
+
     let baseImage = new Image();
     let overlays = [];
     let activeOverlay = null;
+    let isDragging = false;
+    let startX, startY;
 
-    // Upload background image
+    // Load the background image
     document.getElementById('fileInput').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -56,17 +73,12 @@
         }
     });
 
-    // Draw all elements on canvas
+    // Function to draw the entire canvas
     function drawCanvas() {
-        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw background image
         if (baseImage.src) {
             ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
         }
-
-        // Draw overlays
         overlays.forEach(overlay => {
             ctx.save();
             ctx.translate(overlay.x, overlay.y);
@@ -80,7 +92,7 @@
     // Add a new overlay
     function addOverlay() {
         const overlayImage = new Image();
-        overlayImage.src = 'https://via.placeholder.com/150'; // Placeholder image; replace with desired image source
+        overlayImage.src = 'https://via.placeholder.com/150'; // Placeholder; replace with desired image source
         overlayImage.onload = () => {
             const overlay = {
                 image: overlayImage,
@@ -92,6 +104,7 @@
             overlays.push(overlay);
             activeOverlay = overlay;
             drawCanvas();
+            updateSliders();
         };
     }
 
@@ -103,59 +116,84 @@
         link.click();
     }
 
-    // Event listeners for drag, rotation, scaling of active overlay
-    canvas.addEventListener('mousedown', startDrag);
-    canvas.addEventListener('mousemove', drag);
-    canvas.addEventListener('mouseup', endDrag);
-
-    let isDragging = false;
-    let startX, startY;
-
-    function startDrag(e) {
+    // Start dragging an overlay
+    canvas.addEventListener('mousedown', (e) => {
         const [mouseX, mouseY] = getMousePos(e);
         activeOverlay = overlays.find(overlay => isOverlayClicked(overlay, mouseX, mouseY));
         if (activeOverlay) {
             isDragging = true;
             startX = mouseX - activeOverlay.x;
             startY = mouseY - activeOverlay.y;
+            updateSliders();
         }
-    }
+    });
 
-    function drag(e) {
-        if (!isDragging || !activeOverlay) return;
-        const [mouseX, mouseY] = getMousePos(e);
-        activeOverlay.x = mouseX - startX;
-        activeOverlay.y = mouseY - startY;
-        drawCanvas();
-    }
+    // Dragging event
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDragging && activeOverlay) {
+            const [mouseX, mouseY] = getMousePos(e);
+            activeOverlay.x = mouseX - startX;
+            activeOverlay.y = mouseY - startY;
+            drawCanvas();
+        }
+    });
 
-    function endDrag() {
+    // End dragging
+    canvas.addEventListener('mouseup', () => {
         isDragging = false;
-    }
+    });
 
+    // Utility to get mouse position
     function getMousePos(e) {
         const rect = canvas.getBoundingClientRect();
         return [e.clientX - rect.left, e.clientY - rect.top];
     }
 
+    // Check if the overlay is clicked
     function isOverlayClicked(overlay, x, y) {
         const dx = x - overlay.x;
         const dy = y - overlay.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        return dist < overlay.image.width / 2 * overlay.scale;
+        return dist < (overlay.image.width / 2) * overlay.scale;
     }
 
-    // Transformations
+    // Update sliders to match the active overlay's properties
+    function updateSliders() {
+        if (activeOverlay) {
+            rotationSlider.value = activeOverlay.rotation;
+            scaleSlider.value = activeOverlay.scale * 100;
+        }
+    }
+
+    // Handle rotation slider
+    rotationSlider.addEventListener('input', () => {
+        if (activeOverlay) {
+            activeOverlay.rotation = parseInt(rotationSlider.value, 10);
+            drawCanvas();
+        }
+    });
+
+    // Handle scale slider
+    scaleSlider.addEventListener('input', () => {
+        if (activeOverlay) {
+            activeOverlay.scale = parseFloat(scaleSlider.value) / 100;
+            drawCanvas();
+        }
+    });
+
+    // Keyboard transformations for fine control
     document.addEventListener('keydown', (e) => {
         if (!activeOverlay) return;
         if (e.key === 'ArrowUp') activeOverlay.scale += 0.05;
         if (e.key === 'ArrowDown') activeOverlay.scale = Math.max(0.1, activeOverlay.scale - 0.05);
         if (e.key === 'ArrowLeft') activeOverlay.rotation -= 5;
         if (e.key === 'ArrowRight') activeOverlay.rotation += 5;
+        updateSliders();
         drawCanvas();
     });
 </script>
 </body>
 </html>
+
 
 
