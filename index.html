@@ -412,7 +412,12 @@
             <button class="button" onclick="document.getElementById('fileInput').click()">
                 <i class="fas fa-image"></i> Choose Image
             </button>
-
+            
+            <div class="slider-container">
+                <label>Rotation</label>
+                <input type="range" id="rotationSlider" min="0" max="360" value="180">
+            </div>
+            
             <div class="slider-container">
                 <label>Size</label>
                 <input type="range" id="scaleSlider" min="5" max="75" value="20">
@@ -563,7 +568,7 @@
                     overlays.push(overlay);
                     activeOverlay = overlay;
                     document.getElementById('rotationSlider').value = 180;  // Center of rotation slider
-                    document.getElementById('scaleSlider').value = 75;     // Center of scale slider
+                    document.getElementById('scaleSlider').value = 20;     // Center of scale slider
                     document.getElementById('deleteButton').classList.remove('disabled');
                     drawCanvas();
                 };
