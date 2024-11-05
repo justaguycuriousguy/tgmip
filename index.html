@@ -420,8 +420,9 @@
 
             <div class="slider-container">
                 <label>Size</label>
-                <input type="range" id="scaleSlider" min="50" max="200" value="20">
+                <input type="range" id="scaleSlider" min="10" max="150" value="75">
             </div>
+
 
             <button class="button delete-button disabled" id="deleteButton">
                 <i class="fas fa-trash"></i> Delete Selected
@@ -559,15 +560,15 @@
                         image: overlayImg,
                         x: (canvas.width / dpr) / 2,
                         y: (canvas.height / dpr) / 2,
-                        rotation: 180,  // Center rotation
-                        scale: 0.2,     // 20% size instead of 50%
+                        rotation: 0,     // Start with no rotation
+                        scale: 0.2,      // Start with small size
                         initialWidth: overlayImg.width,
                         initialHeight: overlayImg.height
                     };
                     overlays.push(overlay);
                     activeOverlay = overlay;
-                    document.getElementById('rotationSlider').value = 180; // Center rotation
-                    document.getElementById('scaleSlider').value = 20;    // 20% size
+                    document.getElementById('rotationSlider').value = 180;  // Center of rotation slider
+                    document.getElementById('scaleSlider').value = 75;     // Center of scale slider
                     document.getElementById('deleteButton').classList.remove('disabled');
                     drawCanvas();
                 };
@@ -811,14 +812,18 @@
     // Control panel handlers
     document.getElementById('rotationSlider').addEventListener('input', e => {
         if (activeOverlay) {
-            activeOverlay.rotation = parseInt(e.target.value);
+            // Convert slider value to -180 to +180 range
+            const sliderValue = parseInt(e.target.value);
+            activeOverlay.rotation = sliderValue - 180;
             drawCanvas();
         }
     });
 
+    // Modified scale handler to provide better small-to-large range
     document.getElementById('scaleSlider').addEventListener('input', e => {
         if (activeOverlay) {
-            activeOverlay.scale = e.target.value / 100;
+            // Convert slider value (10-150) to scale (0.1 to 1.5)
+            activeOverlay.scale = (parseInt(e.target.value) / 100);
             drawCanvas();
         }
     });
