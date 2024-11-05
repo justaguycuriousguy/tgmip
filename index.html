@@ -52,7 +52,7 @@
         .canvas-wrapper {
             position: relative;
             width: 100%;
-            padding-top: 75%; /* 4:3 Aspect Ratio */
+            padding-top: 75%;
             margin-bottom: 8px;
             background: rgba(0, 0, 0, 0.5);
             border-radius: 12px;
@@ -219,7 +219,8 @@
         #fileInput {
             display: none;
         }
-            .preview-modal {
+
+        .preview-modal {
             display: none;
             position: fixed;
             top: 0;
@@ -414,12 +415,12 @@
             
             <div class="slider-container">
                 <label>Rotation</label>
-                <input type="range" id="rotationSlider" min="0" max="360" value="0">
+                <input type="range" id="rotationSlider" min="0" max="360" value="180">
             </div>
 
             <div class="slider-container">
                 <label>Size</label>
-                <input type="range" id="scaleSlider" min="50" max="200" value="100">
+                <input type="range" id="scaleSlider" min="50" max="200" value="20">
             </div>
 
             <button class="button delete-button disabled" id="deleteButton">
@@ -432,7 +433,6 @@
         </div>
     </div>
 
-    <!-- Preview Modal -->
     <div class="preview-modal" id="previewModal">
         <div class="preview-content">
             <button class="modal-close" onclick="closePreview()">×</button>
@@ -449,7 +449,7 @@
                     <i class="fab fa-telegram"></i> Telegram
                 </button>
                 <button class="share-button twitter" onclick="shareToTwitter()">
-                    <i class="fab fa-twitter"></i> Twitter
+<i class="fab fa-twitter"></i> Twitter
                 </button>
                 <button class="share-button" onclick="shareToOthers()">
                     <i class="fas fa-share-alt"></i> Share
@@ -458,7 +458,6 @@
         </div>
     </div>
 
-    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
     </div>
@@ -546,7 +545,7 @@
         overlays.forEach(overlay => drawOverlay(overlay));
     }
 
-    // Add overlay from stogie selector with initial 50% size
+    // Modified add overlay from stogie selector with smaller default size
     document.querySelectorAll('.stogie-option').forEach(option => {
         option.addEventListener('click', () => {
             const img = option.querySelector('img');
@@ -560,14 +559,15 @@
                         image: overlayImg,
                         x: (canvas.width / dpr) / 2,
                         y: (canvas.height / dpr) / 2,
-                        rotation: 0,
-                        scale: 0.5, // Start at 50% size
+                        rotation: 180,  // Center rotation
+                        scale: 0.2,     // 20% size instead of 50%
                         initialWidth: overlayImg.width,
                         initialHeight: overlayImg.height
                     };
                     overlays.push(overlay);
                     activeOverlay = overlay;
-                    document.getElementById('scaleSlider').value = 50; // Set slider to match
+                    document.getElementById('rotationSlider').value = 180; // Center rotation
+                    document.getElementById('scaleSlider').value = 20;    // 20% size
                     document.getElementById('deleteButton').classList.remove('disabled');
                     drawCanvas();
                 };
@@ -605,153 +605,6 @@
         ctx.restore();
     }
 
-    // Sharing functions
-    async function generateHighResCanvas() {
-        // Create a high-resolution canvas for export
-        const exportCanvas = document.createElement('canvas');
-        const exportCtx = exportCanvas.getContext('2d');
-        const scale = 2; // Higher resolution for export
-
-        exportCanvas.width = canvas.width * scale;
-        exportCanvas.height = canvas.height * scale;
-
-        // Scale everything up for higher resolution
-        exportCtx.scale(scale * canvasScale, scale * canvasScale);
-        
-        if (baseImage.src) {
-            const imgRatio = baseImage.width / baseImage.height;
-            const canvasRatio = canvas.width / canvas.height;
-            let drawWidth, drawHeight, x, y;
-
-            if (imgRatio > canvasRatio) {
-                drawWidth = canvas.width / canvasScale;
-                drawHeight = (canvas.width / canvasScale) / imgRatio;
-                x = 0;
-                y = (canvas.height / canvasScale - drawHeight) / 2;
-            } else {
-                drawHeight = canvas.height / canvasScale;
-                drawWidth = (canvas.height / canvasScale) * imgRatio;
-                x = (canvas.width / canvasScale - drawWidth) / 2;
-                y = 0;
-            }
-
-            exportCtx.drawImage(baseImage, x, y, drawWidth, drawHeight);
-        }
-
-        // Draw overlays at high resolution
-        overlays.forEach(overlay => {
-            exportCtx.save();
-            const x = overlay.x / canvasScale;
-            const y = overlay.y / canvasScale;
-            
-            exportCtx.translate(x, y);
-            exportCtx.rotate(overlay.rotation * Math.PI / 180);
-            exportCtx.scale(overlay.scale, overlay.scale);
-            
-            exportCtx.drawImage(
-                overlay.image,
-                -overlay.image.width / 2,
-                -overlay.image.height / 2
-            );
-            
-            exportCtx.restore();
-        });
-
-        return exportCanvas;
-    }
-
-    async function shareImage(method) {
-        const exportCanvas = await generateHighResCanvas();
-        
-        try {
-            const blob = await new Promise(resolve => 
-                exportCanvas.toBlob(resolve, 'image/png', 1.0)
-            );
-
-            switch (method) {
-                case 'download':
-                    const downloadUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    a.download = 'meme.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(downloadUrl);
-                    break;
-
-                case 'telegram':
-                    const telegramUrl = URL.createObjectURL(blob);
-                    if (window.Telegram && window.Telegram.WebApp) {
-                        const formData = new FormData();
-                        formData.append('photo', blob, 'meme.png');
-                        window.Telegram.WebApp.sendData(formData);
-                    } else {
-                        window.open(`https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}`);
-                    }
-                    break;
-
-                case 'twitter':
-                    const twitterUrl = URL.createObjectURL(blob);
-                    window.open(`https://twitter.com/intent/tweet?text=Check%20out%20my%20meme!&url=${encodeURIComponent(twitterUrl)}`);
-                    break;
-
-                case 'share':
-                    if (navigator.share) {
-                        const file = new File([blob], 'meme.png', { type: 'image/png' });
-                        await navigator.share({
-                            files: [file],
-                            title: 'Share Meme'
-                        });
-                    } else {
-                        downloadImage();
-                    }
-                    break;
-            }
-        } catch (error) {
-            console.error('Error sharing:', error);
-            alert('Error sharing image. Please try downloading instead.');
-        }
-    }
-
-    // Preview and share handlers
-    document.getElementById('previewButton').addEventListener('click', async () => {
-        const exportCanvas = await generateHighResCanvas();
-        const previewImage = document.getElementById('previewImage');
-        previewImage.src = exportCanvas.toDataURL('image/png');
-        document.getElementById('previewModal').style.display = 'flex';
-    });
-
-    function closePreview() {
-        document.getElementById('previewModal').style.display = 'none';
-    }
-
-    // Initialize the app
-    initializeCanvas();
-
-    // Handle controls
-    document.getElementById('rotationSlider').addEventListener('input', e => {
-        if (activeOverlay) {
-            activeOverlay.rotation = parseInt(e.target.value);
-            drawCanvas();
-        }
-    });
-
-    document.getElementById('scaleSlider').addEventListener('input', e => {
-        if (activeOverlay) {
-            activeOverlay.scale = e.target.value / 100;
-            drawCanvas();
-        }
-    });
-
-    document.getElementById('deleteButton').addEventListener('click', () => {
-        if (activeOverlay) {
-            overlays = overlays.filter(overlay => overlay !== activeOverlay);
-            activeOverlay = null;
-            document.getElementById('deleteButton').classList.add('disabled');
-            drawCanvas();
-        }
-    });
     // Handle touch events
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -849,6 +702,112 @@
         });
     }
 
+    // Sharing functions
+    async function generateHighResCanvas() {
+        const exportCanvas = document.createElement('canvas');
+        const exportCtx = exportCanvas.getContext('2d');
+        const scale = 2;
+
+        exportCanvas.width = canvas.width * scale;
+        exportCanvas.height = canvas.height * scale;
+
+        exportCtx.scale(scale * canvasScale, scale * canvasScale);
+        
+        if (baseImage.src) {
+            const imgRatio = baseImage.width / baseImage.height;
+            const canvasRatio = canvas.width / canvas.height;
+            let drawWidth, drawHeight, x, y;
+
+            if (imgRatio > canvasRatio) {
+                drawWidth = canvas.width / canvasScale;
+                drawHeight = (canvas.width / canvasScale) / imgRatio;
+                x = 0;
+                y = (canvas.height / canvasScale - drawHeight) / 2;
+            } else {
+                drawHeight = canvas.height / canvasScale;
+                drawWidth = (canvas.height / canvasScale) * imgRatio;
+                x = (canvas.width / canvasScale - drawWidth) / 2;
+                y = 0;
+            }
+
+            exportCtx.drawImage(baseImage, x, y, drawWidth, drawHeight);
+        }
+
+        overlays.forEach(overlay => {
+            exportCtx.save();
+            const x = overlay.x / canvasScale;
+            const y = overlay.y / canvasScale;
+            
+            exportCtx.translate(x, y);
+            exportCtx.rotate(overlay.rotation * Math.PI / 180);
+            exportCtx.scale(overlay.scale, overlay.scale);
+            
+            exportCtx.drawImage(
+                overlay.image,
+                -overlay.image.width / 2,
+                -overlay.image.height / 2
+            );
+            
+            exportCtx.restore();
+        });
+
+        return exportCanvas;
+    }
+
+    async function shareImage(method) {
+        const exportCanvas = await generateHighResCanvas();
+        
+        try {
+            const blob = await new Promise(resolve => 
+                exportCanvas.toBlob(resolve, 'image/png', 1.0)
+            );
+
+            switch (method) {
+                case 'download':
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = 'meme.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(downloadUrl);
+                    break;
+
+                case 'telegram':
+                    const telegramUrl = URL.createObjectURL(blob);
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        const formData = new FormData();
+                        formData.append('photo', blob, 'meme.png');
+                        window.Telegram.WebApp.sendData(formData);
+                    } else {
+                        window.open(`https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}`);
+                    }
+                    break;
+
+                case 'twitter':
+                    const twitterUrl = URL.createObjectURL(blob);
+                    window.open(`https://twitter.com/intent/tweet?text=Check%20out%20my%20meme!&url=${encodeURIComponent(twitterUrl)}`);
+                    break;
+
+                case 'share':
+                    if (navigator.share) {
+                        const file = new File([blob], 'meme.png', { type: 'image/png' });
+                        await navigator.share({
+                            files: [file],
+                            title: 'Share Meme'
+                        });
+                    } else {
+                        downloadImage();
+                    }
+                    break;
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
+            alert('Error sharing image. Please try downloading instead.');
+        }
+    }
+
     // Control panel handlers
     document.getElementById('rotationSlider').addEventListener('input', e => {
         if (activeOverlay) {
@@ -873,10 +832,21 @@
         }
     });
 
+    // Preview and share handlers
+    document.getElementById('previewButton').addEventListener('click', async () => {
+        const exportCanvas = await generateHighResCanvas();
+        const previewImage = document.getElementById('previewImage');
+        previewImage.src = exportCanvas.toDataURL('image/png');
+        document.getElementById('previewModal').style.display = 'flex';
+    });
+
+    function closePreview() {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+
     // Initialize
     initializeCanvas();
-</script>
+    </script>
 </body>
 </html>
-
 
