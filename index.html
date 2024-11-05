@@ -171,6 +171,7 @@
             opacity: 0.5;
             pointer-events: none;
         }
+
         .slider-container {
             margin: 16px 0;
         }
@@ -300,6 +301,16 @@
         .share-button.telegram {
             background: rgba(0, 136, 204, 0.2);
             border-color: #0088cc;
+        }
+
+        .share-button.export-mobile {
+            background: rgba(0, 136, 204, 0.15);
+            border-color: #0088cc;
+            font-size: 12px;
+        }
+
+        .share-button.export-mobile:hover {
+            box-shadow: 0 0 10px rgba(0, 136, 204, 0.3);
         }
 
         .share-button.twitter {
@@ -441,17 +452,17 @@
             </div>
             
             <div class="share-options">
+                <button class="share-button export-mobile" onclick="sendToDM()">
+                    <i class="fas fa-mobile-alt"></i> Export (Mobile)
+                </button>
                 <button class="share-button download" onclick="downloadImage()">
                     <i class="fas fa-download"></i> Download
                 </button>
                 <button class="share-button telegram" onclick="shareToTelegram()">
-                    <i class="fab fa-telegram"></i> Telegram
-                </button>
-                <button class="share-button twitter" onclick="shareToTwitter()">
-                    <i class="fab fa-twitter"></i> Twitter
+                    <i class="fab fa-telegram"></i> Share
                 </button>
                 <button class="share-button" onclick="shareToOthers()">
-                    <i class="fas fa-share-alt"></i> Share
+                    <i class="fas fa-share-alt"></i> More
                 </button>
             </div>
         </div>
@@ -478,12 +489,15 @@
         const dpr = window.devicePixelRatio || 1;
         const rect = container.getBoundingClientRect();
         
+        // Set display size
         canvas.style.width = rect.width + 'px';
         canvas.style.height = rect.height + 'px';
         
+        // Set actual size
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         
+        // Scale context
         ctx.scale(dpr, dpr);
         canvasScale = dpr;
         
@@ -508,6 +522,17 @@
             reader.readAsDataURL(file);
         }
     });
+
+    // Function to update delete button state
+    function updateDeleteButtonState() {
+        const deleteButton = document.getElementById('deleteButton');
+        if (activeOverlay) {
+            deleteButton.classList.remove('disabled');
+        } else {
+            deleteButton.classList.add('disabled');
+        }
+    }
+
     // Draw canvas with proper image scaling
     function drawCanvas() {
         const dpr = window.devicePixelRatio || 1;
@@ -540,18 +565,10 @@
 
         overlays.forEach(overlay => drawOverlay(overlay));
     }
-
-    // Function to update delete button state
-    function updateDeleteButtonState() {
-        const deleteButton = document.getElementById('deleteButton');
-        if (activeOverlay) {
-            deleteButton.classList.remove('disabled');
-        } else {
-            deleteButton.classList.add('disabled');
-        }
-    }
-
-    // Modified add overlay from stogie selector with improved defaults
+    </script>
+</body>
+</html>
+// Modified stogie option click handler
     document.querySelectorAll('.stogie-option').forEach(option => {
         option.addEventListener('click', () => {
             const img = option.querySelector('img');
@@ -573,7 +590,7 @@
                     overlays.push(overlay);
                     activeOverlay = overlay;
                     document.getElementById('rotationSlider').value = 180;  // Center of rotation slider
-                    document.getElementById('scaleSlider').value = 37.5;     // Center of scale slider
+                    document.getElementById('scaleSlider').value = 37.5;    // Center of scale slider
                     updateDeleteButtonState();
                     drawCanvas();
                 };
@@ -665,6 +682,7 @@
     function handleTouchEnd() {
         isDragging = false;
     }
+
     // Enhanced mouse event handlers
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
@@ -674,7 +692,6 @@
         const pos = getMousePos(e);
         const clickedOverlay = findClickedOverlay(pos.x, pos.y);
         
-        // Update active overlay and delete button state
         activeOverlay = clickedOverlay;
         updateDeleteButtonState();
         
@@ -722,12 +739,11 @@
             y: (e.clientY - rect.top) * dpr
         };
     }
-
-    // Enhanced sharing functions
+    // Enhanced canvas generation for sharing
     async function generateHighResCanvas() {
         const exportCanvas = document.createElement('canvas');
         const exportCtx = exportCanvas.getContext('2d');
-        const scale = 2;
+        const scale = 2; // Higher resolution for export
 
         exportCanvas.width = canvas.width * scale;
         exportCanvas.height = canvas.height * scale;
@@ -775,47 +791,106 @@
         return exportCanvas;
     }
 
+    // Convert canvas to file
+    async function convertCanvasToFile(canvas) {
+        return new Promise((resolve, reject) => {
+            canvas.toBlob(blob => {
+                if (blob) {
+                    const file = new File([blob], 'meme.png', { type: 'image/png' });
+                    resolve(file);
+                } else {
+                    reject(new Error('Failed to create image file'));
+                }
+            }, 'image/png', 1.0);
+        });
+    }
+
+    // New function to send to DM
+    async function sendToDM() {
+        try {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+
+            const exportCanvas = await generateHighResCanvas();
+            const imageFile = await convertCanvasToFile(exportCanvas);
+            
+            if (window.Telegram?.WebApp) {
+                // Convert file to base64
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    const base64data = reader.result.split(',')[1];
+                    // Send as proper format for Telegram
+                    window.Telegram.WebApp.sendData(JSON.stringify({
+                        type: 'dm_image',
+                        data: base64data,
+                        filename: 'meme.png',
+                        caption: 'Here\'s your meme!'
+                    }));
+                    loadingOverlay.style.display = 'none';
+                };
+                reader.readAsDataURL(imageFile);
+            }
+        } catch (error) {
+            console.error('Error sending to DM:', error);
+            alert('Error sending image. Please try another sharing method.');
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+    }
+
+    // Enhanced share functionality
     async function shareImage(method) {
-        const exportCanvas = await generateHighResCanvas();
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        loadingOverlay.style.display = 'flex';
         
         try {
-            const blob = await new Promise(resolve => 
-                exportCanvas.toBlob(resolve, 'image/png', 1.0)
-            );
-
+            const exportCanvas = await generateHighResCanvas();
+            const imageFile = await convertCanvasToFile(exportCanvas);
+            
             switch (method) {
                 case 'download':
-                    const downloadUrl = URL.createObjectURL(blob);
+                    const url = URL.createObjectURL(imageFile);
                     const a = document.createElement('a');
-                    a.href = downloadUrl;
+                    a.href = url;
                     a.download = 'meme.png';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    URL.revokeObjectURL(downloadUrl);
+                    URL.revokeObjectURL(url);
                     break;
 
                 case 'telegram':
-                    if (window.Telegram && window.Telegram.WebApp) {
-                        const formData = new FormData();
-                        formData.append('photo', blob, 'meme.png');
-                        window.Telegram.WebApp.sendData(formData);
+                    if (window.Telegram?.WebApp) {
+                        const reader = new FileReader();
+                        reader.onloadend = function() {
+                            const base64data = reader.result.split(',')[1];
+                            window.Telegram.WebApp.sendData(JSON.stringify({
+                                type: 'share_image',
+                                data: base64data
+                            }));
+                        };
+                        reader.readAsDataURL(imageFile);
                     }
                     break;
 
-                case 'twitter':
-                    const twitterUrl = URL.createObjectURL(blob);
-                    window.open(`https://twitter.com/intent/tweet?text=Check%20out%20my%20meme!&url=${encodeURIComponent(twitterUrl)}`);
-                    break;
-
                 case 'share':
-                    if (navigator.share) {
-                        const file = new File([blob], 'meme.png', { type: 'image/png' });
-                        await navigator.share({
-                            files: [file],
-                            title: 'Share Meme'
-                        });
-                    } else {
+                    try {
+                        if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+                            await navigator.share({
+                                files: [imageFile],
+                                title: 'My Meme',
+                                text: 'Check out my meme!'
+                            });
+                        } else {
+                            // Fallback if file sharing is not supported
+                            const dataUrl = exportCanvas.toDataURL('image/png');
+                            await navigator.share({
+                                title: 'My Meme',
+                                text: 'Check out my meme!',
+                                url: dataUrl
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Share failed:', err);
                         downloadImage();
                     }
                     break;
@@ -823,7 +898,22 @@
         } catch (error) {
             console.error('Error sharing:', error);
             alert('Error sharing image. Please try downloading instead.');
+        } finally {
+            loadingOverlay.style.display = 'none';
         }
+    }
+
+    // Helper functions for sharing
+    function downloadImage() {
+        shareImage('download');
+    }
+
+    function shareToTelegram() {
+        shareImage('telegram');
+    }
+
+    function shareToOthers() {
+        shareImage('share');
     }
     // Modified rotation handler with improved center-based rotation
     document.getElementById('rotationSlider').addEventListener('input', e => {
@@ -858,60 +948,117 @@
         }
     });
 
-    // Preview functionality
+    // Preview functionality with enhanced image quality
     document.getElementById('previewButton').addEventListener('click', async () => {
-        const exportCanvas = await generateHighResCanvas();
-        const previewImage = document.getElementById('previewImage');
-        previewImage.src = exportCanvas.toDataURL('image/png');
-        document.getElementById('previewModal').style.display = 'flex';
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        loadingOverlay.style.display = 'flex';
+        
+        try {
+            const exportCanvas = await generateHighResCanvas();
+            const previewImage = document.getElementById('previewImage');
+            previewImage.src = exportCanvas.toDataURL('image/png');
+            document.getElementById('previewModal').style.display = 'flex';
+        } catch (error) {
+            console.error('Preview generation failed:', error);
+            alert('Error generating preview. Please try again.');
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
     });
 
     function closePreview() {
         document.getElementById('previewModal').style.display = 'none';
     }
 
-    // Share method handlers
-    function downloadImage() {
-        shareImage('download');
-    }
-
-    function shareToTelegram() {
-        shareImage('telegram');
-    }
-
-    function shareToTwitter() {
-        shareImage('twitter');
-    }
-
-    function shareToOthers() {
-        shareImage('share');
-    }
-
-    // Telegram WebApp specific initialization
-    if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.ready();
+    // Enhanced Telegram WebApp specific initialization
+    if (window.Telegram?.WebApp) {
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+        
+        // Set theme colors based on Telegram theme
+        if (webapp.themeParams) {
+            document.documentElement.style.setProperty('--dark-bg', webapp.themeParams.secondary_bg_color);
+            document.documentElement.style.setProperty('--neon-blue', webapp.themeParams.button_color);
+        }
         
         // Handle back button for modal
-        window.Telegram.WebApp.BackButton.onClick(() => {
+        webapp.BackButton.onClick(() => {
             if (document.getElementById('previewModal').style.display === 'flex') {
                 closePreview();
-                window.Telegram.WebApp.BackButton.hide();
+                webapp.BackButton.hide();
+            } else {
+                webapp.close();
             }
         });
 
         // Show back button when preview is opened
         document.getElementById('previewButton').addEventListener('click', () => {
-            window.Telegram.WebApp.BackButton.show();
+            webapp.BackButton.show();
         });
 
         // Hide back button when preview is closed
         document.querySelector('.modal-close').addEventListener('click', () => {
-            window.Telegram.WebApp.BackButton.hide();
+            webapp.BackButton.hide();
+        });
+
+        // Handle main button for export
+        webapp.MainButton.setText('Export Meme');
+        webapp.MainButton.onClick(() => {
+            sendToDM();
         });
     }
 
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (activeOverlay) {
+            switch(e.key) {
+                case 'Delete':
+                case 'Backspace':
+                    // Trigger delete button
+                    document.getElementById('deleteButton').click();
+                    break;
+                case 'Escape':
+                    // Deselect active overlay
+                    activeOverlay = null;
+                    updateDeleteButtonState();
+                    drawCanvas();
+                    break;
+            }
+        }
+        
+        if (e.key === 'Escape' && document.getElementById('previewModal').style.display === 'flex') {
+            closePreview();
+        }
+    });
+
+    // Handle window resizing smoothly
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            initializeCanvas();
+            drawCanvas();
+        }, 250);
+    });
+
     // Initialize the application
     initializeCanvas();
+
+    // Add error boundary
+    window.addEventListener('error', (event) => {
+        console.error('Application error:', event.error);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('An error occurred. Please try again.');
+    });
+
+    // Add unload handler to clean up resources
+    window.addEventListener('beforeunload', () => {
+        overlays.forEach(overlay => {
+            if (overlay.image.src) {
+                URL.revokeObjectURL(overlay.image.src);
+            }
+        });
+    });
     </script>
 </body>
 </html>
