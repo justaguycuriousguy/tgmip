@@ -171,7 +171,6 @@
             opacity: 0.5;
             pointer-events: none;
         }
-
         .slider-container {
             margin: 16px 0;
         }
@@ -423,7 +422,6 @@
                 <input type="range" id="scaleSlider" min="5" max="75" value="37.5">
             </div>
 
-
             <button class="button delete-button disabled" id="deleteButton">
                 <i class="fas fa-trash"></i> Delete Selected
             </button>
@@ -450,7 +448,7 @@
                     <i class="fab fa-telegram"></i> Telegram
                 </button>
                 <button class="share-button twitter" onclick="shareToTwitter()">
-<i class="fab fa-twitter"></i> Twitter
+                    <i class="fab fa-twitter"></i> Twitter
                 </button>
                 <button class="share-button" onclick="shareToOthers()">
                     <i class="fas fa-share-alt"></i> Share
@@ -462,6 +460,7 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
     </div>
+
     <script>
     // Core variables
     const canvas = document.getElementById('memeCanvas');
@@ -479,22 +478,19 @@
         const dpr = window.devicePixelRatio || 1;
         const rect = container.getBoundingClientRect();
         
-        // Set display size
         canvas.style.width = rect.width + 'px';
         canvas.style.height = rect.height + 'px';
         
-        // Set actual size
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         
-        // Scale context
         ctx.scale(dpr, dpr);
         canvasScale = dpr;
         
         drawCanvas();
     }
 
-    // Event listeners
+    // Event listeners for window
     window.addEventListener('resize', initializeCanvas);
     window.addEventListener('orientationchange', initializeCanvas);
 
@@ -512,7 +508,6 @@
             reader.readAsDataURL(file);
         }
     });
-
     // Draw canvas with proper image scaling
     function drawCanvas() {
         const dpr = window.devicePixelRatio || 1;
@@ -546,7 +541,17 @@
         overlays.forEach(overlay => drawOverlay(overlay));
     }
 
-    // Modified add overlay from stogie selector with smaller default size
+    // Function to update delete button state
+    function updateDeleteButtonState() {
+        const deleteButton = document.getElementById('deleteButton');
+        if (activeOverlay) {
+            deleteButton.classList.remove('disabled');
+        } else {
+            deleteButton.classList.add('disabled');
+        }
+    }
+
+    // Modified add overlay from stogie selector with improved defaults
     document.querySelectorAll('.stogie-option').forEach(option => {
         option.addEventListener('click', () => {
             const img = option.querySelector('img');
@@ -569,7 +574,7 @@
                     activeOverlay = overlay;
                     document.getElementById('rotationSlider').value = 180;  // Center of rotation slider
                     document.getElementById('scaleSlider').value = 37.5;     // Center of scale slider
-                    document.getElementById('deleteButton').classList.remove('disabled');
+                    updateDeleteButtonState();
                     drawCanvas();
                 };
             }
@@ -606,7 +611,19 @@
         ctx.restore();
     }
 
-    // Handle touch events
+    // Modified findClickedOverlay with improved hit detection
+    function findClickedOverlay(x, y) {
+        const dpr = window.devicePixelRatio || 1;
+        const clicked = overlays.slice().reverse().find(overlay => {
+            const dx = (x - overlay.x);
+            const dy = (y - overlay.y);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < (overlay.image.width * overlay.scale * dpr / 2);
+        });
+        return clicked || null;
+    }
+
+    // Enhanced touch event handlers
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', handleTouchEnd);
@@ -616,15 +633,21 @@
         const touch = e.touches[0];
         const pos = getTouchPos(touch);
         
-        // Find clicked overlay
         const clickedOverlay = findClickedOverlay(pos.x, pos.y);
+        activeOverlay = clickedOverlay;
+        updateDeleteButtonState();
+        
         if (clickedOverlay) {
-            activeOverlay = clickedOverlay;
             isDragging = true;
             startX = pos.x - clickedOverlay.x;
             startY = pos.y - clickedOverlay.y;
-            drawCanvas();
+            
+            // Update slider values to match selected overlay
+            document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
+            document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
         }
+        
+        drawCanvas();
     }
 
     function handleTouchMove(e) {
@@ -642,8 +665,7 @@
     function handleTouchEnd() {
         isDragging = false;
     }
-
-    // Handle mouse events
+    // Enhanced mouse event handlers
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseup', handleMouseUp);
@@ -652,13 +674,21 @@
         const pos = getMousePos(e);
         const clickedOverlay = findClickedOverlay(pos.x, pos.y);
         
+        // Update active overlay and delete button state
+        activeOverlay = clickedOverlay;
+        updateDeleteButtonState();
+        
         if (clickedOverlay) {
-            activeOverlay = clickedOverlay;
             isDragging = true;
             startX = pos.x - clickedOverlay.x;
             startY = pos.y - clickedOverlay.y;
-            drawCanvas();
+            
+            // Update slider values to match selected overlay
+            document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
+            document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
         }
+        
+        drawCanvas();
     }
 
     function handleMouseMove(e) {
@@ -674,7 +704,7 @@
         isDragging = false;
     }
 
-    // Helper functions
+    // Helper functions for position calculations
     function getTouchPos(touch) {
         const rect = canvas.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
@@ -693,17 +723,7 @@
         };
     }
 
-    function findClickedOverlay(x, y) {
-        const dpr = window.devicePixelRatio || 1;
-        return overlays.slice().reverse().find(overlay => {
-            const dx = (x - overlay.x);
-            const dy = (y - overlay.y);
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            return distance < (overlay.image.width * overlay.scale * dpr / 2);
-        });
-    }
-
-    // Sharing functions
+    // Enhanced sharing functions
     async function generateHighResCanvas() {
         const exportCanvas = document.createElement('canvas');
         const exportCtx = exportCanvas.getContext('2d');
@@ -776,13 +796,10 @@
                     break;
 
                 case 'telegram':
-                    const telegramUrl = URL.createObjectURL(blob);
                     if (window.Telegram && window.Telegram.WebApp) {
                         const formData = new FormData();
                         formData.append('photo', blob, 'meme.png');
                         window.Telegram.WebApp.sendData(formData);
-                    } else {
-                        window.open(`https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}`);
                     }
                     break;
 
@@ -808,8 +825,7 @@
             alert('Error sharing image. Please try downloading instead.');
         }
     }
-
-    // Control panel handlers
+    // Modified rotation handler with improved center-based rotation
     document.getElementById('rotationSlider').addEventListener('input', e => {
         if (activeOverlay) {
             // Convert slider value to -180 to +180 range
@@ -819,25 +835,30 @@
         }
     });
 
-    // Modified scale handler to provide better small-to-large range
+    // Modified scale handler with improved range
     document.getElementById('scaleSlider').addEventListener('input', e => {
         if (activeOverlay) {
-            // Convert slider value (10-150) to scale (0.1 to 1.5)
-            activeOverlay.scale = (parseInt(e.target.value) / 100);
+            const scaleValue = parseInt(e.target.value);
+            activeOverlay.scale = scaleValue / 100;
             drawCanvas();
         }
     });
 
+    // Enhanced delete button handler with proper state management
     document.getElementById('deleteButton').addEventListener('click', () => {
         if (activeOverlay) {
             overlays = overlays.filter(overlay => overlay !== activeOverlay);
             activeOverlay = null;
-            document.getElementById('deleteButton').classList.add('disabled');
+            updateDeleteButtonState();
             drawCanvas();
+            
+            // Reset sliders to default positions
+            document.getElementById('rotationSlider').value = 180;
+            document.getElementById('scaleSlider').value = 37.5;
         }
     });
 
-    // Preview and share handlers
+    // Preview functionality
     document.getElementById('previewButton').addEventListener('click', async () => {
         const exportCanvas = await generateHighResCanvas();
         const previewImage = document.getElementById('previewImage');
@@ -849,7 +870,47 @@
         document.getElementById('previewModal').style.display = 'none';
     }
 
-    // Initialize
+    // Share method handlers
+    function downloadImage() {
+        shareImage('download');
+    }
+
+    function shareToTelegram() {
+        shareImage('telegram');
+    }
+
+    function shareToTwitter() {
+        shareImage('twitter');
+    }
+
+    function shareToOthers() {
+        shareImage('share');
+    }
+
+    // Telegram WebApp specific initialization
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        
+        // Handle back button for modal
+        window.Telegram.WebApp.BackButton.onClick(() => {
+            if (document.getElementById('previewModal').style.display === 'flex') {
+                closePreview();
+                window.Telegram.WebApp.BackButton.hide();
+            }
+        });
+
+        // Show back button when preview is opened
+        document.getElementById('previewButton').addEventListener('click', () => {
+            window.Telegram.WebApp.BackButton.show();
+        });
+
+        // Hide back button when preview is closed
+        document.querySelector('.modal-close').addEventListener('click', () => {
+            window.Telegram.WebApp.BackButton.hide();
+        });
+    }
+
+    // Initialize the application
     initializeCanvas();
     </script>
 </body>
