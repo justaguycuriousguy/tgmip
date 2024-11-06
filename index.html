@@ -16,13 +16,10 @@
         window.platformConfig = {
             isTelegram: Boolean(window.Telegram?.WebApp),
             isPC: !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)),
-            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-            
             init: function() {
                 console.log('Initial platform detection:', {
                     isTelegram: this.isTelegram,
-                    isPC: this.isPC,
-                    isMobile: this.isMobile
+                    isPC: this.isPC
                 });
                 
                 // Initialize Telegram WebApp if available
@@ -61,14 +58,6 @@
 
             isTelegramWebApp: function() {
                 return Boolean(window.Telegram?.WebApp);
-            },
-
-            // Check clipboard support
-            hasClipboardSupport: function() {
-                return !!(
-                    navigator.clipboard && 
-                    (navigator.clipboard.write || navigator.clipboard.writeText)
-                );
             }
         };
 
@@ -92,13 +81,13 @@
             --error-red: #ff4444;
             --success-green: #00C851;
             --warning-yellow: #ffbb33;
-            --telegram-blue: #0088cc;
             --retrowave-gradient: linear-gradient(
                 45deg,
                 var(--neon-pink),
                 var(--neon-purple),
                 var(--neon-blue)
             );
+            --telegram-blue: #0088cc;
         }
 
         * {
@@ -269,6 +258,54 @@
             pointer-events: none;
         }
 
+        .slider-container {
+            margin: 16px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--neon-pink);
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 36px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            outline: none;
+            border: 1px solid var(--neon-blue);
+            margin: 0;
+            padding: 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: var(--neon-purple);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-purple);
+            border: none;
+            margin-top: -8px;
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            border: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
         .preview-modal {
             display: none;
             position: fixed;
@@ -294,6 +331,15 @@
             border: 1px solid var(--neon-blue);
             box-shadow: 0 0 20px var(--neon-blue);
             position: relative;
+        }
+
+        .preview-content h2 {
+            margin: 0 0 20px 0;
+            text-align: center;
+            color: var(--neon-pink);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 20px;
         }
 
         .preview-image-container {
@@ -332,8 +378,6 @@
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
         }
 
         .share-button:hover {
@@ -348,7 +392,6 @@
 
         .share-button.download {
             border-color: var(--neon-green);
-            background: rgba(5, 255, 161, 0.15);
         }
 
         .share-button.telegram {
@@ -356,36 +399,9 @@
             border-color: var(--telegram-blue);
         }
 
-        .share-button.clipboard {
-            border-color: var(--neon-purple);
-            background: rgba(185, 103, 255, 0.15);
-        }
-
-        .share-button.clipboard:hover {
-            background: rgba(185, 103, 255, 0.25);
-        }
-
         .share-button.export-mobile {
             background: rgba(0, 136, 204, 0.15);
             border-color: var(--telegram-blue);
-        }
-
-        /* Copy feedback animation */
-        .share-button.clipboard:active::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            animation: copyFeedback 0.3s ease-out;
-        }
-
-        @keyframes copyFeedback {
-            0% { opacity: 1; }
-            100% { opacity: 0; }
         }
 
         .pc-only {
@@ -559,7 +575,7 @@
         </div>
     </div>
 
-    <!-- Enhanced Preview Modal with Universal Clipboard Support -->
+    <!-- Enhanced Preview Modal -->
     <div class="preview-modal" id="previewModal">
         <div class="preview-content">
             <h2>Preview & Share</h2>
@@ -569,22 +585,22 @@
             
             <div class="share-options">
                 <!-- Telegram-specific option -->
-                <button class="share-button telegram" onclick="sendToDM()" data-action="dm">
-                    <i class="fab fa-telegram"></i> Send to Telegram
+                <button class="share-button export-mobile mobile-only telegram-share" onclick="sendToDM()" data-action="dm">
+                    <i class="fab fa-telegram"></i> Share to Telegram
                 </button>
 
-                <!-- Universal clipboard option (now available for both mobile and desktop) -->
-                <button class="share-button clipboard" onclick="copyToClipboard()" data-action="copy">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-
-                <!-- Universal download option -->
+                <!-- Universal options -->
                 <button class="share-button download" onclick="downloadImage()" data-action="download">
                     <i class="fas fa-download"></i> Download
                 </button>
 
-                <!-- Universal share option -->
-                <button class="share-button" onclick="shareToSocial()" data-action="social">
+                <!-- PC-specific options -->
+                <button class="share-button pc-only" onclick="copyToClipboard()" data-action="copy">
+                    <i class="fas fa-copy"></i> Copy to Clipboard
+                </button>
+
+                <!-- Additional share options -->
+                <button class="share-button pc-only" onclick="shareToSocial()" data-action="social">
                     <i class="fas fa-share-alt"></i> Share
                 </button>
             </div>
@@ -597,7 +613,7 @@
         <div class="loading-text">Processing your meme...</div>
     </div>
 
-    <!-- Enhanced Status Messages Container -->
+    <!-- Status Messages Container -->
     <div class="status-message" id="statusMessage"></div>
 
     <!-- Debug Panel (hidden in production) -->
@@ -614,14 +630,7 @@
             <p id="platformMessage"></p>
         </div>
     </div>
-
-    <!-- Clipboard Fallback (hidden input for legacy support) -->
-    <textarea id="clipboardFallback" 
-              style="position: fixed; top: -9999px; left: -9999px; opacity: 0; 
-                     pointer-events: none; user-select: none;">
-    </textarea>
-</body>
-<script>
+    <script>
 // Security and Platform Utils
 const platformUtils = {
     isTelegram: Boolean(window.Telegram?.WebApp),
@@ -658,12 +667,17 @@ const platformUtils = {
             });
         }
 
+        // Show/hide platform-specific elements
         document.querySelectorAll('.pc-only').forEach(el => {
             el.style.display = this.isPC ? 'flex' : 'none';
         });
         document.querySelectorAll('.mobile-only').forEach(el => {
             el.style.display = !this.isPC ? 'flex' : 'none';
         });
+    },
+
+    confirmTelegramWebApp: function() {
+        return Boolean(window.Telegram?.WebApp?.initData);
     }
 };
 
@@ -693,52 +707,6 @@ const securityUtils = {
     }
 };
 
-// Image dimensions tracking utility
-const imageDimensionsUtils = {
-    baseImageDimensions: {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0
-    },
-
-    updateDimensions: function() {
-        const dpr = window.devicePixelRatio || 1;
-        const displayWidth = canvas.width / dpr;
-        const displayHeight = canvas.height / dpr;
-        const imgRatio = baseImage.width / baseImage.height;
-        const canvasRatio = displayWidth / displayHeight;
-
-        if (imgRatio > canvasRatio) {
-            this.baseImageDimensions.width = displayWidth;
-            this.baseImageDimensions.height = displayWidth / imgRatio;
-            this.baseImageDimensions.x = 0;
-            this.baseImageDimensions.y = (displayHeight - this.baseImageDimensions.height) / 2;
-        } else {
-            this.baseImageDimensions.height = displayHeight;
-            this.baseImageDimensions.width = displayHeight * imgRatio;
-            this.baseImageDimensions.x = (displayWidth - this.baseImageDimensions.width) / 2;
-            this.baseImageDimensions.y = 0;
-        }
-
-        debugUtils.log('Updated base image dimensions', this.baseImageDimensions);
-    },
-
-    getDimensions: function() {
-        return { ...this.baseImageDimensions };
-    },
-
-    getScaledDimensions: function(scale = 1) {
-        const dims = this.getDimensions();
-        return {
-            x: dims.x * scale,
-            y: dims.y * scale,
-            width: dims.width * scale,
-            height: dims.height * scale
-        };
-    }
-};
-
 // Enhanced status handling
 const statusHandler = {
     show: function(message, type = 'success', duration = 3000) {
@@ -754,6 +722,12 @@ const statusHandler = {
         setTimeout(() => {
             statusEl.className = 'status-message';
         }, duration);
+    },
+
+    showProgress: function(message) {
+        const statusEl = document.getElementById('statusMessage');
+        statusEl.textContent = message;
+        statusEl.className = 'status-message progress show';
     }
 };
 
@@ -781,6 +755,7 @@ const errorHandler = {
     handle: function(error, context = '') {
         console.error(`Error in ${context}:`, error);
         
+        // Different handling based on platform
         if (platformUtils.isTelegram) {
             const errorMessage = error.message || 'An error occurred';
             window.Telegram.WebApp.showAlert(errorMessage);
@@ -788,11 +763,32 @@ const errorHandler = {
         } else {
             const errorMessage = error.message || 'An error occurred. Please try again.';
             statusHandler.show(errorMessage, 'error');
+            
+            if (platformUtils.isPC) {
+                console.debug('Detailed error info:', error);
+            }
         }
         
         loadingHandler.hide();
+    },
+
+    logError: function(error, context) {
+        console.error(`[${context}] Error:`, error);
+        if (error.stack) {
+            console.error('Stack trace:', error.stack);
+        }
     }
 };
+
+// Core variables
+const canvas = document.getElementById('memeCanvas');
+const ctx = canvas.getContext('2d');
+const baseImage = new Image();
+let overlays = [];
+let activeOverlay = null;
+let isDragging = false;
+let startX, startY;
+let canvasScale = 1;
 
 // Debug utilities
 const debugUtils = {
@@ -811,9 +807,9 @@ const debugUtils = {
             debugInfo.textContent = JSON.stringify({
                 platformInfo: {
                     isTelegram: platformUtils.isTelegram,
-                    isPC: platformUtils.isPC
+                    isPC: platformUtils.isPC,
+                    webAppInitialized: Boolean(window.Telegram?.WebApp?.initData)
                 },
-                imageDimensions: imageDimensionsUtils.getDimensions(),
                 canvasInfo: {
                     width: canvas.width,
                     height: canvas.height,
@@ -825,16 +821,6 @@ const debugUtils = {
         }
     }
 };
-
-// Core variables
-const canvas = document.getElementById('memeCanvas');
-const ctx = canvas.getContext('2d');
-const baseImage = new Image();
-let overlays = [];
-let activeOverlay = null;
-let isDragging = false;
-let startX, startY;
-let canvasScale = 1;
 </script>
 <script>
 // Canvas initialization and utilities
@@ -896,15 +882,22 @@ const canvasUtils = {
     drawBaseImage: function(displayWidth, displayHeight) {
         const imgRatio = baseImage.width / baseImage.height;
         const canvasRatio = displayWidth / displayHeight;
-        
-        // Update stored dimensions
-        imageDimensionsUtils.updateDimensions();
-        const dimensions = imageDimensionsUtils.getDimensions();
+        let drawWidth, drawHeight, x, y;
 
-        ctx.drawImage(baseImage, dimensions.x, dimensions.y, 
-                     dimensions.width, dimensions.height);
-        
-        debugUtils.log('Base image drawn', dimensions);
+        if (imgRatio > canvasRatio) {
+            drawWidth = displayWidth;
+            drawHeight = displayWidth / imgRatio;
+            x = 0;
+            y = (displayHeight - drawHeight) / 2;
+        } else {
+            drawHeight = displayHeight;
+            drawWidth = displayHeight * imgRatio;
+            x = (displayWidth - drawWidth) / 2;
+            y = 0;
+        }
+
+        ctx.drawImage(baseImage, x, y, drawWidth, drawHeight);
+        debugUtils.log('Base image drawn', { width: drawWidth, height: drawHeight });
     },
 
     drawOverlay: function(overlay) {
@@ -1023,7 +1016,8 @@ const imageUtils = {
             
             return new File([outputBlob], 'compressed-meme.jpg', { type: 'image/jpeg' });
         } catch (error) {
-            console.error('Compression failed:', error);
+            errorHandler.logError(error, 'image compression');
+            debugUtils.log('Compression failed, returning original file');
             return file;
         }
     },
@@ -1040,83 +1034,64 @@ const imageUtils = {
             reader.onerror = reject;
             reader.readAsDataURL(file);
         });
-    },
-
-    createCroppedCanvas: async function() {
-        const dimensions = imageDimensionsUtils.getDimensions();
-        const exportCanvas = document.createElement('canvas');
-        const ctx = exportCanvas.getContext('2d');
-        const scale = 2; // High resolution export
-
-        // Set canvas size to match actual image dimensions
-        exportCanvas.width = dimensions.width * scale;
-        exportCanvas.height = dimensions.height * scale;
-
-        // Clear canvas
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-
-        // Draw base image
-        ctx.drawImage(baseImage, 0, 0, exportCanvas.width, exportCanvas.height);
-
-        // Adjust overlay positions relative to cropped canvas
-        overlays.forEach(overlay => {
-            const adjustedX = (overlay.x / canvasScale) - dimensions.x;
-            const adjustedY = (overlay.y / canvasScale) - dimensions.y;
-
-            ctx.save();
-            ctx.translate(adjustedX * scale, adjustedY * scale);
-            ctx.rotate(overlay.rotation * Math.PI / 180);
-            ctx.scale(overlay.scale * scale, overlay.scale * scale);
-            ctx.drawImage(
-                overlay.image,
-                -overlay.image.width / 2,
-                -overlay.image.height / 2
-            );
-            ctx.restore();
-        });
-
-        return exportCanvas;
     }
 };
 </script>
 <script>
 // Enhanced sharing functionality
 const sharingUtils = {
-    async generateHighResCanvas(forPreview = true) {
-        debugUtils.log('Generating high-res canvas', { forPreview });
-        
+    async generateHighResCanvas() {
+        debugUtils.log('Generating high-res canvas');
+        const exportCanvas = document.createElement('canvas');
+        const exportCtx = exportCanvas.getContext('2d');
+        const scale = 2;
+
+        exportCanvas.width = canvas.width * scale;
+        exportCanvas.height = canvas.height * scale;
+
         try {
-            if (forPreview && baseImage.src) {
-                // Use cropped canvas for preview/export
-                return await imageUtils.createCroppedCanvas();
-            } else {
-                // Use full canvas for editing preview
-                const exportCanvas = document.createElement('canvas');
-                const exportCtx = exportCanvas.getContext('2d');
-                const scale = 2;
-
-                exportCanvas.width = canvas.width * scale;
-                exportCanvas.height = canvas.height * scale;
-                exportCtx.scale(scale * canvasScale, scale * canvasScale);
-
-                // Draw base image and overlays
-                if (baseImage.src) {
-                    const dimensions = imageDimensionsUtils.getDimensions();
-                    exportCtx.drawImage(baseImage, dimensions.x, dimensions.y, 
-                                      dimensions.width, dimensions.height);
-                }
-
-                overlays.forEach(overlay => {
-                    this.drawOverlayToCanvas(exportCtx, overlay, canvasScale);
-                });
-
-                return exportCanvas;
+            exportCtx.scale(scale * canvasScale, scale * canvasScale);
+            
+            if (baseImage.src) {
+                const dimensions = this.calculateImageDimensions();
+                exportCtx.drawImage(baseImage, dimensions.x, dimensions.y, 
+                                 dimensions.width, dimensions.height);
             }
+
+            overlays.forEach(overlay => {
+                this.drawOverlayToCanvas(exportCtx, overlay, canvasScale);
+            });
+
+            debugUtils.log('High-res canvas generated', {
+                width: exportCanvas.width,
+                height: exportCanvas.height
+            });
+
+            return exportCanvas;
         } catch (error) {
             errorHandler.handle(error, 'generating high-res canvas');
             throw new Error('Failed to generate image');
         }
+    },
+
+    calculateImageDimensions() {
+        const imgRatio = baseImage.width / baseImage.height;
+        const canvasRatio = canvas.width / canvas.height;
+        let width, height, x, y;
+
+        if (imgRatio > canvasRatio) {
+            width = canvas.width / canvasScale;
+            height = (canvas.width / canvasScale) / imgRatio;
+            x = 0;
+            y = (canvas.height / canvasScale - height) / 2;
+        } else {
+            height = canvas.height / canvasScale;
+            width = (canvas.height / canvasScale) * imgRatio;
+            x = (canvas.width / canvasScale - width) / 2;
+            y = 0;
+        }
+
+        return { width, height, x, y };
     },
 
     drawOverlayToCanvas(ctx, overlay, scale) {
@@ -1159,50 +1134,6 @@ const sharingUtils = {
     }
 };
 
-// Enhanced clipboard functionality
-const clipboardUtils = {
-    async copyImage(canvas) {
-        try {
-            const blob = await new Promise(resolve => canvas.toBlob(resolve));
-            
-            // Try modern clipboard API first
-            if (navigator.clipboard?.write) {
-                await navigator.clipboard.write([
-                    new ClipboardItem({ [blob.type]: blob })
-                ]);
-                return true;
-            }
-            
-            // Fallback for mobile browsers that support writeText
-            if (navigator.clipboard?.writeText) {
-                const dataUrl = canvas.toDataURL('image/png');
-                await navigator.clipboard.writeText(dataUrl);
-                return true;
-            }
-            
-            // Legacy fallback
-            return this.legacyCopyToClipboard(canvas);
-        } catch (error) {
-            console.error('Clipboard operation failed:', error);
-            return false;
-        }
-    },
-
-    legacyCopyToClipboard(canvas) {
-        const dataUrl = canvas.toDataURL('image/png');
-        const textArea = document.getElementById('clipboardFallback');
-        textArea.value = dataUrl;
-        textArea.select();
-        
-        try {
-            return document.execCommand('copy');
-        } catch (error) {
-            console.error('Legacy clipboard operation failed:', error);
-            return false;
-        }
-    }
-};
-
 // Enhanced sending functionality
 async function sendToDM() {
     loadingHandler.show('Processing image...');
@@ -1215,7 +1146,7 @@ async function sendToDM() {
         }
 
         loadingHandler.updateMessage('Generating image...');
-        const exportCanvas = await sharingUtils.generateHighResCanvas(true);
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
         
         loadingHandler.updateMessage('Preparing file...');
         const imageFile = await sharingUtils.convertCanvasToFile(exportCanvas);
@@ -1250,45 +1181,11 @@ async function sendToDM() {
     }
 }
 
-async function copyToClipboard() {
-    loadingHandler.show('Copying to clipboard...');
-    
-    try {
-        const exportCanvas = await sharingUtils.generateHighResCanvas(true);
-        const success = await clipboardUtils.copyImage(exportCanvas);
-        
-        if (success) {
-            statusHandler.show('Copied to clipboard!', 'success');
-        } else {
-            throw new Error('Failed to copy to clipboard');
-        }
-    } catch (error) {
-        errorHandler.handle(error, 'copying to clipboard');
-        // Offer download as fallback
-        const shouldDownload = await new Promise(resolve => {
-            if (platformUtils.isTelegram) {
-                window.Telegram.WebApp.showConfirm(
-                    'Unable to copy to clipboard. Would you like to download the image instead?',
-                    result => resolve(result)
-                );
-            } else {
-                resolve(confirm('Unable to copy to clipboard. Would you like to download the image instead?'));
-            }
-        });
-        
-        if (shouldDownload) {
-            await downloadImage();
-        }
-    } finally {
-        loadingHandler.hide();
-    }
-}
-
 async function downloadImage() {
     loadingHandler.show('Preparing download...');
     
     try {
-        const exportCanvas = await sharingUtils.generateHighResCanvas(true);
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
         const imageFile = await sharingUtils.convertCanvasToFile(exportCanvas);
         
         const url = URL.createObjectURL(imageFile);
@@ -1308,11 +1205,40 @@ async function downloadImage() {
     }
 }
 
+async function shareToTelegram() {
+    if (!platformUtils.isTelegram) {
+        window.open('https://t.me/share/url?url=' + encodeURIComponent(window.location.href));
+        return;
+    }
+    await sendToDM();
+}
+
+async function copyToClipboard() {
+    loadingHandler.show('Copying to clipboard...');
+    
+    try {
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const blob = await new Promise(resolve => exportCanvas.toBlob(resolve));
+        
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                [blob.type]: blob
+            })
+        ]);
+        
+        statusHandler.show('Copied to clipboard!', 'success');
+    } catch (error) {
+        errorHandler.handle(error, 'copying to clipboard');
+    } finally {
+        loadingHandler.hide();
+    }
+}
+
 async function shareToSocial() {
     loadingHandler.show('Preparing to share...');
     
     try {
-        const exportCanvas = await sharingUtils.generateHighResCanvas(true);
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
         const imageFile = await sharingUtils.convertCanvasToFile(exportCanvas);
         
         if (navigator.share) {
@@ -1334,8 +1260,7 @@ async function shareToSocial() {
         loadingHandler.hide();
     }
 }
-</script>
-<script>
+
 // Event Handlers
 document.getElementById('fileInput').addEventListener('change', async function(e) {
     const file = e.target.files[0];
@@ -1349,11 +1274,11 @@ document.getElementById('fileInput').addEventListener('change', async function(e
             errorHandler.handle(error, 'file input');
         } finally {
             loadingHandler.hide();
-            this.value = ''; // Reset file input
         }
     }
 });
-
+</script>
+<script>
 // Enhanced Stogie selector handlers
 document.querySelectorAll('.stogie-option').forEach(option => {
     option.addEventListener('click', () => {
@@ -1387,6 +1312,14 @@ document.querySelectorAll('.stogie-option').forEach(option => {
                 document.getElementById('scaleSlider').value = 37.5;
                 updateDeleteButtonState();
                 canvasUtils.draw();
+                
+                debugUtils.log('Overlay added', {
+                    totalOverlays: overlays.length,
+                    overlayDimensions: {
+                        width: overlayImg.width,
+                        height: overlayImg.height
+                    }
+                });
             };
 
             overlayImg.onerror = () => {
@@ -1396,19 +1329,7 @@ document.querySelectorAll('.stogie-option').forEach(option => {
     });
 });
 
-// Enhanced Touch event handlers with better position calculation
-function getTouchPos(touch) {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    return {
-        x: (touch.clientX - rect.left) * scaleX,
-        y: (touch.clientY - rect.top) * scaleY
-    };
-}
-
+// Enhanced Touch event handlers
 canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd);
@@ -1432,6 +1353,11 @@ function handleTouchStart(e) {
         
         document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
         document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
+        
+        debugUtils.log('Touch started on overlay', {
+            position: { x: pos.x, y: pos.y },
+            overlayType: clickedOverlay.type
+        });
     }
 }
 
@@ -1446,25 +1372,24 @@ function handleTouchMove(e) {
     activeOverlay.y = pos.y - startY;
     
     canvasUtils.draw();
+    debugUtils.log('Moving overlay', {
+        newPosition: { x: activeOverlay.x, y: activeOverlay.y }
+    });
 }
 
 function handleTouchEnd() {
+    if (isDragging) {
+        debugUtils.log('Touch ended', {
+            finalPosition: activeOverlay ? {
+                x: activeOverlay.x,
+                y: activeOverlay.y
+            } : null
+        });
+    }
     isDragging = false;
 }
 
 // Enhanced Mouse event handlers
-function getMousePos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
-    };
-}
-
 canvas.addEventListener('mousedown', handleMouseDown);
 canvas.addEventListener('mousemove', handleMouseMove);
 canvas.addEventListener('mouseup', handleMouseUp);
@@ -1486,6 +1411,11 @@ function handleMouseDown(e) {
         
         document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
         document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
+        
+        debugUtils.log('Mouse down on overlay', {
+            position: { x: pos.x, y: pos.y },
+            overlayType: clickedOverlay.type
+        });
     }
 }
 
@@ -1500,15 +1430,43 @@ function handleMouseMove(e) {
 }
 
 function handleMouseUp() {
+    if (isDragging) {
+        debugUtils.log('Mouse up', {
+            finalPosition: activeOverlay ? {
+                x: activeOverlay.x,
+                y: activeOverlay.y
+            } : null
+        });
+    }
     isDragging = false;
 }
 
+// Enhanced utility functions for position calculations
+function getTouchPos(touch) {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    return {
+        x: (touch.clientX - rect.left) * dpr,
+        y: (touch.clientY - rect.top) * dpr
+    };
+}
+
+function getMousePos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    return {
+        x: (e.clientX - rect.left) * dpr,
+        y: (e.clientY - rect.top) * dpr
+    };
+}
+
 function findClickedOverlay(x, y) {
+    const dpr = window.devicePixelRatio || 1;
     return overlays.slice().reverse().find(overlay => {
         const dx = (x - overlay.x);
         const dy = (y - overlay.y);
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const hitboxSize = overlay.image.width * overlay.scale / 2;
+        const hitboxSize = overlay.image.width * overlay.scale * dpr / 2;
         return distance < hitboxSize;
     }) || null;
 }
@@ -1519,6 +1477,10 @@ document.getElementById('rotationSlider').addEventListener('input', e => {
         const sliderValue = parseInt(e.target.value);
         activeOverlay.rotation = sliderValue - 180;
         canvasUtils.draw();
+        
+        debugUtils.log('Rotation updated', {
+            newRotation: activeOverlay.rotation
+        });
     }
 });
 
@@ -1527,33 +1489,21 @@ document.getElementById('scaleSlider').addEventListener('input', e => {
         const scaleValue = parseInt(e.target.value);
         activeOverlay.scale = scaleValue / 100;
         canvasUtils.draw();
-    }
-});
-
-// Enhanced Preview button handler
-document.getElementById('previewButton').addEventListener('click', async () => {
-    loadingHandler.show('Generating preview...');
-    
-    try {
-        debugUtils.log('Generating preview');
-        const exportCanvas = await sharingUtils.generateHighResCanvas(true);
-        const previewImage = document.getElementById('previewImage');
-        previewImage.src = exportCanvas.toDataURL('image/png');
-        document.getElementById('previewModal').style.display = 'flex';
         
-        if (platformUtils.isTelegram && window.Telegram?.WebApp) {
-            window.Telegram.WebApp.BackButton.show();
-        }
-    } catch (error) {
-        errorHandler.handle(error, 'generating preview');
-    } finally {
-        loadingHandler.hide();
+        debugUtils.log('Scale updated', {
+            newScale: activeOverlay.scale
+        });
     }
 });
 
-// Delete button handler
+// Enhanced delete button handler
 document.getElementById('deleteButton').addEventListener('click', () => {
     if (activeOverlay) {
+        debugUtils.log('Deleting overlay', {
+            type: activeOverlay.type,
+            position: { x: activeOverlay.x, y: activeOverlay.y }
+        });
+
         overlays = overlays.filter(overlay => overlay !== activeOverlay);
         activeOverlay = null;
         updateDeleteButtonState();
@@ -1566,28 +1516,55 @@ document.getElementById('deleteButton').addEventListener('click', () => {
     }
 });
 
+// Enhanced preview button handler
+document.getElementById('previewButton').addEventListener('click', async () => {
+    loadingHandler.show('Generating preview...');
+    
+    try {
+        debugUtils.log('Generating preview');
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const previewImage = document.getElementById('previewImage');
+        previewImage.src = exportCanvas.toDataURL('image/png');
+        document.getElementById('previewModal').style.display = 'flex';
+        
+        if (platformUtils.isTelegram && window.Telegram?.WebApp) {
+            window.Telegram.WebApp.BackButton.show();
+            debugUtils.log('Telegram back button shown');
+        }
+    } catch (error) {
+        errorHandler.handle(error, 'generating preview');
+    } finally {
+        loadingHandler.hide();
+    }
+});
+
 function updateDeleteButtonState() {
     const deleteButton = document.getElementById('deleteButton');
     deleteButton.classList.toggle('disabled', !activeOverlay);
+    debugUtils.log('Delete button state updated', {
+        isEnabled: Boolean(activeOverlay)
+    });
 }
 
 function closePreview() {
     document.getElementById('previewModal').style.display = 'none';
     if (platformUtils.isTelegram && window.Telegram?.WebApp) {
         window.Telegram.WebApp.BackButton.hide();
+        debugUtils.log('Telegram back button hidden');
     }
 }
 
-// Window event handlers
+// Enhanced window event handlers
 let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
+        debugUtils.log('Window resized');
         canvasUtils.init();
     }, 250);
 });
 
-// Keyboard shortcuts
+// Enhanced keyboard shortcuts
 document.addEventListener('keydown', (e) => {
     if (activeOverlay) {
         switch(e.key) {
