@@ -4,6 +4,35 @@
     <meta charset="UTF-8">
     <title>Enhanced Meme Maker</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- Security headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdnjs.cloudflare.com data: blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,">
+    
+    <!-- Prevent Web3 provider injection -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            // Freeze ethereum property if it exists
+            if (!Object.getOwnPropertyDescriptor(window, 'ethereum')) {
+                Object.defineProperty(window, 'ethereum', {
+                    value: null,
+                    writable: false,
+                    configurable: false
+                });
+            }
+            
+            // Handle injection errors gracefully
+            window.addEventListener('error', (event) => {
+                if (event.message.includes('ethereum')) {
+                    event.preventDefault();
+                    console.warn('Ethereum provider injection blocked for security');
+                }
+            });
+        });
+    </script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -14,6 +43,9 @@
             --dark-bg: #1a1a2e;
             --grid-color: rgba(255, 113, 206, 0.1);
             --modal-bg: rgba(26, 26, 46, 0.95);
+            --error-red: #ff4444;
+            --success-green: #00C851;
+            --warning-yellow: #ffbb33;
             --retrowave-gradient: linear-gradient(
                 45deg,
                 var(--neon-pink),
@@ -309,43 +341,6 @@
             font-size: 12px;
         }
 
-        .share-button.export-mobile:hover {
-            box-shadow: 0 0 10px rgba(0, 136, 204, 0.3);
-        }
-
-        .share-button.twitter {
-            background: rgba(29, 161, 242, 0.2);
-            border-color: #1da1f2;
-        }
-
-        .share-button:active {
-            transform: scale(0.95);
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            transition: all 0.2s ease;
-        }
-
-        .modal-close:active {
-            transform: scale(0.95);
-            background: rgba(255, 255, 255, 0.2);
-        }
-
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -358,6 +353,8 @@
             align-items: center;
             z-index: 2000;
             backdrop-filter: blur(5px);
+            flex-direction: column;
+            gap: 20px;
         }
 
         .loading-spinner {
@@ -369,8 +366,58 @@
             animation: spin 1s linear infinite;
         }
 
+        .loading-text {
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            max-width: 80%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-message {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 2001;
+            pointer-events: none;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .status-message.success {
+            background-color: var(--success-green);
+            box-shadow: 0 0 15px rgba(0, 200, 81, 0.5);
+        }
+
+        .status-message.error {
+            background-color: var(--error-red);
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+        }
+
+        .status-message.warning {
+            background-color: var(--warning-yellow);
+            box-shadow: 0 0 15px rgba(255, 187, 51, 0.5);
+        }
+
+        .status-message.show {
+            opacity: 1;
+        }
+
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
         }
 
         @media (max-width: 480px) {
@@ -391,9 +438,14 @@
                 padding: 10px;
                 font-size: 12px;
             }
+
+            .status-message {
+                font-size: 14px;
+                padding: 10px 20px;
+            }
         }
     </style>
-</head>
+    </head>
 <body>
     <div class="app-container">
         <div class="canvas-wrapper">
@@ -443,6 +495,7 @@
         </div>
     </div>
 
+    <!-- Enhanced Preview Modal -->
     <div class="preview-modal" id="previewModal">
         <div class="preview-content">
             <button class="modal-close" onclick="closePreview()">×</button>
@@ -452,611 +505,697 @@
             </div>
             
             <div class="share-options">
-                <button class="share-button export-mobile" onclick="sendToDM()">
+                <button class="share-button export-mobile" onclick="sendToDM()" data-action="dm">
                     <i class="fas fa-mobile-alt"></i> Export (Mobile)
+                    <div class="button-loader" style="display: none;"></div>
                 </button>
-                <button class="share-button download" onclick="downloadImage()">
+                <button class="share-button download" onclick="downloadImage()" data-action="download">
                     <i class="fas fa-download"></i> Download
                 </button>
-                <button class="share-button telegram" onclick="shareToTelegram()">
+                <button class="share-button telegram" onclick="shareToTelegram()" data-action="telegram">
                     <i class="fab fa-telegram"></i> Share
                 </button>
-                <button class="share-button" onclick="shareToOthers()">
+                <button class="share-button" onclick="shareToOthers()" data-action="others">
                     <i class="fas fa-share-alt"></i> More
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- Enhanced Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
+        <div class="loading-text">Processing your meme...</div>
     </div>
 
+    <!-- Status Messages Container -->
+    <div class="status-message" id="statusMessage"></div>
+
+    <!-- Enhanced Error Boundary -->
+    <div id="errorBoundary" style="display: none;">
+        <div class="error-content">
+            <h3>Oops! Something went wrong</h3>
+            <p id="errorMessage"></p>
+            <button onclick="window.location.reload()">Reload App</button>
+        </div>
+    </div>
+    <!-- Security Utils -->
     <script>
-    // Core variables
-    const canvas = document.getElementById('memeCanvas');
-    const ctx = canvas.getContext('2d');
-    const baseImage = new Image();
-    let overlays = [];
-    let activeOverlay = null;
-    let isDragging = false;
-    let startX, startY;
-    let canvasScale = 1;
-
-    // Initialize canvas with proper scaling
-    function initializeCanvas() {
-        const container = canvas.parentElement;
-        const dpr = window.devicePixelRatio || 1;
-        const rect = container.getBoundingClientRect();
-        
-        // Set display size
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
-        
-        // Set actual size
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        
-        // Scale context
-        ctx.scale(dpr, dpr);
-        canvasScale = dpr;
-        
-        drawCanvas();
-    }
-
-    // Event listeners for window
-    window.addEventListener('resize', initializeCanvas);
-    window.addEventListener('orientationchange', initializeCanvas);
-
-    // File input handler
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                baseImage.src = event.target.result;
-                baseImage.onload = function() {
-                    drawCanvas();
-                };
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // Function to update delete button state
-    function updateDeleteButtonState() {
-        const deleteButton = document.getElementById('deleteButton');
-        if (activeOverlay) {
-            deleteButton.classList.remove('disabled');
-        } else {
-            deleteButton.classList.add('disabled');
-        }
-    }
-
-    // Draw canvas with proper image scaling
-    function drawCanvas() {
-        const dpr = window.devicePixelRatio || 1;
-        const displayWidth = canvas.width / dpr;
-        const displayHeight = canvas.height / dpr;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        if (baseImage.src) {
-            const imgRatio = baseImage.width / baseImage.height;
-            const canvasRatio = displayWidth / displayHeight;
-            let drawWidth, drawHeight, x, y;
-
-            if (imgRatio > canvasRatio) {
-                drawWidth = displayWidth;
-                drawHeight = displayWidth / imgRatio;
-                x = 0;
-                y = (displayHeight - drawHeight) / 2;
-            } else {
-                drawHeight = displayHeight;
-                drawWidth = displayHeight * imgRatio;
-                x = (displayWidth - drawWidth) / 2;
-                y = 0;
+        // Security utilities to prevent injection attacks
+        const securityUtils = {
+            sanitizeInput: function(input) {
+                const div = document.createElement('div');
+                div.textContent = input;
+                return div.innerHTML;
+            },
+            
+            validateImage: function(file) {
+                const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                if (!validTypes.includes(file.type)) {
+                    throw new Error('Invalid file type. Please use JPG, PNG, or GIF images.');
+                }
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    throw new Error('File too large. Please use an image under 10MB.');
+                }
+                return true;
+            },
+            
+            createSecureObjectURL: function(file) {
+                const url = URL.createObjectURL(file);
+                setTimeout(() => URL.revokeObjectURL(url), 3600000); // Clean up after 1 hour
+                return url;
             }
+        };
 
-            ctx.drawImage(baseImage, x, y, drawWidth, drawHeight);
+        // Status message handler
+        const statusHandler = {
+            show: function(message, type = 'success') {
+                const statusEl = document.getElementById('statusMessage');
+                statusEl.textContent = message;
+                statusEl.className = `status-message ${type} show`;
+                setTimeout(() => {
+                    statusEl.className = 'status-message';
+                }, 3000);
+            }
+        };
+
+        // Enhanced error handler
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Error: ', msg, url, lineNo, columnNo, error);
+            if (!msg.includes('favicon') && !msg.includes('ethereum')) {
+                statusHandler.show('An error occurred. Please try again.', 'error');
+            }
+            return false;
+        };
+
+        // Core variables
+        const canvas = document.getElementById('memeCanvas');
+        const ctx = canvas.getContext('2d');
+        const baseImage = new Image();
+        let overlays = [];
+        let activeOverlay = null;
+        let isDragging = false;
+        let startX, startY;
+        let canvasScale = 1;
+
+        // Prevent Web3 injection attempts
+        window.addEventListener('load', function() {
+            if (!Object.getOwnPropertyDescriptor(window, 'ethereum')) {
+                Object.defineProperty(window, 'ethereum', {
+                    value: null,
+                    writable: false,
+                    configurable: false
+                });
+            }
+        });
+
+        // Enhanced initialization
+        function initializeCanvas() {
+            try {
+                const container = canvas.parentElement;
+                const dpr = window.devicePixelRatio || 1;
+                const rect = container.getBoundingClientRect();
+                
+                canvas.style.width = rect.width + 'px';
+                canvas.style.height = rect.height + 'px';
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+                canvasScale = dpr;
+                
+                drawCanvas();
+            } catch (error) {
+                console.error('Canvas initialization error:', error);
+                statusHandler.show('Error initializing canvas', 'error');
+            }
         }
 
-        overlays.forEach(overlay => drawOverlay(overlay));
-    }
-    // Modified stogie option click handler
-    document.querySelectorAll('.stogie-option').forEach(option => {
-        option.addEventListener('click', () => {
-            const img = option.querySelector('img');
-            if (img) {
-                const overlayImg = new Image();
-                overlayImg.crossOrigin = "Anonymous";
-                overlayImg.src = img.dataset.src;
-                overlayImg.onload = () => {
-                    const dpr = window.devicePixelRatio || 1;
-                    const overlay = {
-                        image: overlayImg,
-                        x: (canvas.width / dpr) / 2,
-                        y: (canvas.height / dpr) / 2,
-                        rotation: 0,     // Start with no rotation
-                        scale: 0.2,      // Start with small size
-                        initialWidth: overlayImg.width,
-                        initialHeight: overlayImg.height
+        // Enhanced image processing
+        async function processImage(file) {
+            try {
+                securityUtils.validateImage(file);
+                const reader = new FileReader();
+                
+                return new Promise((resolve, reject) => {
+                    reader.onload = function(event) {
+                        baseImage.src = event.target.result;
+                        baseImage.onload = () => resolve();
+                        baseImage.onerror = () => reject(new Error('Failed to load image'));
                     };
-                    overlays.push(overlay);
-                    activeOverlay = overlay;
-                    document.getElementById('rotationSlider').value = 180;  // Center of rotation slider
-                    document.getElementById('scaleSlider').value = 37.5;    // Center of scale slider
-                    updateDeleteButtonState();
-                    drawCanvas();
-                };
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(file);
+                });
+            } catch (error) {
+                statusHandler.show(error.message, 'error');
+                throw error;
             }
-        });
-    });
+        }
 
-    function drawOverlay(overlay) {
-        ctx.save();
-        const dpr = window.devicePixelRatio || 1;
-        const x = overlay.x / dpr;
-        const y = overlay.y / dpr;
+        // Image compression utility
+        async function compressImageIfNeeded(file, maxSize = 5 * 1024 * 1024) {
+            if (file.size <= maxSize) return file;
 
-        ctx.translate(x, y);
-        ctx.rotate(overlay.rotation * Math.PI / 180);
-        ctx.scale(overlay.scale, overlay.scale);
+            try {
+                const img = new Image();
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
 
-        ctx.drawImage(
-            overlay.image,
-            -overlay.image.width / 2,
-            -overlay.image.height / 2
-        );
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(file);
+                });
 
-        if (overlay === activeOverlay) {
-            ctx.strokeStyle = 'var(--neon-pink)';
-            ctx.lineWidth = 2 / overlay.scale;
-            ctx.strokeRect(
+                let quality = 0.8;
+                let outputBlob;
+                
+                do {
+                    const scale = Math.min(1, Math.sqrt(maxSize / file.size));
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    const binaryString = atob(dataUrl.split(',')[1]);
+                    const bytes = new Uint8Array(binaryString.length);
+                    
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    
+                    outputBlob = new Blob([bytes], { type: 'image/jpeg' });
+                    quality -= 0.1;
+                } while (outputBlob.size > maxSize && quality > 0.3);
+
+                URL.revokeObjectURL(img.src);
+                return new File([outputBlob], 'compressed-meme.jpg', { type: 'image/jpeg' });
+            } catch (error) {
+                console.error('Compression failed:', error);
+                return file;
+            }
+        }
+    </script>
+    <script>
+        // Draw canvas functionality
+        function drawCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = canvas.width / dpr;
+            const displayHeight = canvas.height / dpr;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (baseImage.src) {
+                const imgRatio = baseImage.width / baseImage.height;
+                const canvasRatio = displayWidth / displayHeight;
+                let drawWidth, drawHeight, x, y;
+
+                if (imgRatio > canvasRatio) {
+                    drawWidth = displayWidth;
+                    drawHeight = displayWidth / imgRatio;
+                    x = 0;
+                    y = (displayHeight - drawHeight) / 2;
+                } else {
+                    drawHeight = displayHeight;
+                    drawWidth = displayHeight * imgRatio;
+                    x = (displayWidth - drawWidth) / 2;
+                    y = 0;
+                }
+
+                ctx.drawImage(baseImage, x, y, drawWidth, drawHeight);
+            }
+
+            overlays.forEach(overlay => drawOverlay(overlay));
+        }
+
+        // Draw overlay functionality
+        function drawOverlay(overlay) {
+            ctx.save();
+            const dpr = window.devicePixelRatio || 1;
+            const x = overlay.x / dpr;
+            const y = overlay.y / dpr;
+
+            ctx.translate(x, y);
+            ctx.rotate(overlay.rotation * Math.PI / 180);
+            ctx.scale(overlay.scale, overlay.scale);
+
+            ctx.drawImage(
+                overlay.image,
                 -overlay.image.width / 2,
-                -overlay.image.height / 2,
-                overlay.image.width,
-                overlay.image.height
+                -overlay.image.height / 2
             );
+
+            if (overlay === activeOverlay) {
+                ctx.strokeStyle = 'var(--neon-pink)';
+                ctx.lineWidth = 2 / overlay.scale;
+                ctx.strokeRect(
+                    -overlay.image.width / 2,
+                    -overlay.image.height / 2,
+                    overlay.image.width,
+                    overlay.image.height
+                );
+            }
+
+            ctx.restore();
         }
 
-        ctx.restore();
-    }
-
-    // Modified findClickedOverlay with improved hit detection
-    function findClickedOverlay(x, y) {
-        const dpr = window.devicePixelRatio || 1;
-        const clicked = overlays.slice().reverse().find(overlay => {
-            const dx = (x - overlay.x);
-            const dy = (y - overlay.y);
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            return distance < (overlay.image.width * overlay.scale * dpr / 2);
-        });
-        return clicked || null;
-    }
-
-    // Enhanced touch event handlers
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd);
-
-    function handleTouchStart(e) {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const pos = getTouchPos(touch);
-        
-        const clickedOverlay = findClickedOverlay(pos.x, pos.y);
-        activeOverlay = clickedOverlay;
-        updateDeleteButtonState();
-        
-        if (clickedOverlay) {
-            isDragging = true;
-            startX = pos.x - clickedOverlay.x;
-            startY = pos.y - clickedOverlay.y;
+        // Enhanced send to DM functionality
+        async function sendToDM() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = loadingOverlay.querySelector('.loading-text');
             
-            // Update slider values to match selected overlay
-            document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
-            document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
+            try {
+                loadingOverlay.style.display = 'flex';
+                loadingText.textContent = 'Processing image...';
+
+                // Generate high-res canvas
+                const exportCanvas = await generateHighResCanvas();
+                const imageFile = await convertCanvasToFile(exportCanvas);
+                
+                if (window.Telegram?.WebApp) {
+                    loadingText.textContent = 'Sending to chat...';
+                    
+                    // Compress image if needed
+                    const compressedImage = await compressImageIfNeeded(imageFile);
+                    
+                    // Convert to base64
+                    const base64Data = await convertToBase64(compressedImage);
+                    
+                    // Send to Telegram
+                    window.Telegram.WebApp.sendData(JSON.stringify({
+                        type: 'dm_image',
+                        data: base64Data,
+                        filename: 'meme.png',
+                        caption: 'Here\'s your meme!',
+                        timestamp: Date.now(),
+                        meta: {
+                            width: exportCanvas.width,
+                            height: exportCanvas.height,
+                            type: compressedImage.type
+                        }
+                    }));
+
+                    statusHandler.show('Meme sent successfully!', 'success');
+                    closePreview();
+                } else {
+                    throw new Error('Telegram WebApp is not available');
+                }
+            } catch (error) {
+                console.error('Error sending to DM:', error);
+                statusHandler.show('Failed to send image. Please try again.', 'error');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
         }
-        
-        drawCanvas();
-    }
 
-    function handleTouchMove(e) {
-        e.preventDefault();
-        if (!isDragging || !activeOverlay) return;
-
-        const touch = e.touches[0];
-        const pos = getTouchPos(touch);
-        
-        activeOverlay.x = pos.x - startX;
-        activeOverlay.y = pos.y - startY;
-        drawCanvas();
-    }
-
-    function handleTouchEnd() {
-        isDragging = false;
-    }
-
-    // Enhanced mouse event handlers
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseup', handleMouseUp);
-
-    function handleMouseDown(e) {
-        const pos = getMousePos(e);
-        const clickedOverlay = findClickedOverlay(pos.x, pos.y);
-        
-        activeOverlay = clickedOverlay;
-        updateDeleteButtonState();
-        
-        if (clickedOverlay) {
-            isDragging = true;
-            startX = pos.x - clickedOverlay.x;
-            startY = pos.y - clickedOverlay.y;
-            
-            // Update slider values to match selected overlay
-            document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
-            document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
+        // Convert to base64 utility
+        function convertToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
-        
-        drawCanvas();
-    }
 
-    function handleMouseMove(e) {
-        if (!isDragging || !activeOverlay) return;
+        // Generate high-res canvas
+        async function generateHighResCanvas() {
+            const exportCanvas = document.createElement('canvas');
+            const exportCtx = exportCanvas.getContext('2d');
+            const scale = 2;
 
-        const pos = getMousePos(e);
-        activeOverlay.x = pos.x - startX;
-        activeOverlay.y = pos.y - startY;
-        drawCanvas();
-    }
+            exportCanvas.width = canvas.width * scale;
+            exportCanvas.height = canvas.height * scale;
 
-    function handleMouseUp() {
-        isDragging = false;
-    }
+            try {
+                exportCtx.scale(scale * canvasScale, scale * canvasScale);
+                
+                if (baseImage.src) {
+                    const dimensions = calculateImageDimensions(baseImage, canvas);
+                    exportCtx.drawImage(baseImage, dimensions.x, dimensions.y, 
+                                     dimensions.width, dimensions.height);
+                }
 
-    // Helper functions for position calculations
-    function getTouchPos(touch) {
-        const rect = canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
-        return {
-            x: (touch.clientX - rect.left) * dpr,
-            y: (touch.clientY - rect.top) * dpr
-        };
-    }
+                overlays.forEach(overlay => {
+                    drawOverlayToCanvas(exportCtx, overlay, canvasScale);
+                });
 
-    function getMousePos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
-        return {
-            x: (e.clientX - rect.left) * dpr,
-            y: (e.clientY - rect.top) * dpr
-        };
-    }
-    // Enhanced canvas generation for sharing
-    async function generateHighResCanvas() {
-        const exportCanvas = document.createElement('canvas');
-        const exportCtx = exportCanvas.getContext('2d');
-        const scale = 2; // Higher resolution for export
+                return exportCanvas;
+            } catch (error) {
+                console.error('Error generating canvas:', error);
+                throw new Error('Failed to generate image');
+            }
+        }
 
-        exportCanvas.width = canvas.width * scale;
-        exportCanvas.height = canvas.height * scale;
-
-        exportCtx.scale(scale * canvasScale, scale * canvasScale);
-        
-        if (baseImage.src) {
-            const imgRatio = baseImage.width / baseImage.height;
+        // Calculate image dimensions
+        function calculateImageDimensions(image, canvas) {
+            const imgRatio = image.width / image.height;
             const canvasRatio = canvas.width / canvas.height;
-            let drawWidth, drawHeight, x, y;
+            let width, height, x, y;
 
             if (imgRatio > canvasRatio) {
-                drawWidth = canvas.width / canvasScale;
-                drawHeight = (canvas.width / canvasScale) / imgRatio;
+                width = canvas.width / canvasScale;
+                height = (canvas.width / canvasScale) / imgRatio;
                 x = 0;
-                y = (canvas.height / canvasScale - drawHeight) / 2;
+                y = (canvas.height / canvasScale - height) / 2;
             } else {
-                drawHeight = canvas.height / canvasScale;
-                drawWidth = (canvas.height / canvasScale) * imgRatio;
-                x = (canvas.width / canvasScale - drawWidth) / 2;
+                height = canvas.height / canvasScale;
+                width = (canvas.height / canvasScale) * imgRatio;
+                x = (canvas.width / canvasScale - width) / 2;
                 y = 0;
             }
 
-            exportCtx.drawImage(baseImage, x, y, drawWidth, drawHeight);
+            return { width, height, x, y };
         }
 
-        overlays.forEach(overlay => {
-            exportCtx.save();
-            const x = overlay.x / canvasScale;
-            const y = overlay.y / canvasScale;
+        // Draw overlay to canvas
+        function drawOverlayToCanvas(ctx, overlay, scale) {
+            ctx.save();
+            const x = overlay.x / scale;
+            const y = overlay.y / scale;
             
-            exportCtx.translate(x, y);
-            exportCtx.rotate(overlay.rotation * Math.PI / 180);
-            exportCtx.scale(overlay.scale, overlay.scale);
+            ctx.translate(x, y);
+            ctx.rotate(overlay.rotation * Math.PI / 180);
+            ctx.scale(overlay.scale, overlay.scale);
             
-            exportCtx.drawImage(
+            ctx.drawImage(
                 overlay.image,
                 -overlay.image.width / 2,
                 -overlay.image.height / 2
             );
             
-            exportCtx.restore();
-        });
+            ctx.restore();
+        }
 
-        return exportCanvas;
-    }
-
-    // Convert canvas to file
-    async function convertCanvasToFile(canvas) {
-        return new Promise((resolve, reject) => {
-            canvas.toBlob(blob => {
-                if (blob) {
-                    const file = new File([blob], 'meme.png', { type: 'image/png' });
-                    resolve(file);
-                } else {
-                    reject(new Error('Failed to create image file'));
+        // Convert canvas to file
+        async function convertCanvasToFile(canvas) {
+            try {
+                return new Promise((resolve, reject) => {
+                    canvas.toBlob(blob => {
+                        if (blob) {
+                            const file = new File([blob], 'meme.png', { 
+                                type: 'image/png',
+                                lastModified: Date.now()
+                            });
+                            resolve(file);
+                        } else {
+                            reject(new Error('Failed to create image file'));
+                        }
+                    }, 'image/png', 1.0);
+                });
+            } catch (error) {
+                console.error('Error converting canvas to file:', error);
+                throw new Error('Failed to process image');
+            }
+        }
+    </script>
+    <script>
+        // Event handlers for file input
+        document.getElementById('fileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    await processImage(file);
+                    drawCanvas();
+                } catch (error) {
+                    console.error('File processing error:', error);
+                    statusHandler.show(error.message, 'error');
                 }
-            }, 'image/png', 1.0);
+            }
         });
-    }
 
-    // New function to send to DM
-    async function sendToDM() {
-        try {
+        // Stogie selector click handlers
+        document.querySelectorAll('.stogie-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const img = option.querySelector('img');
+                if (img) {
+                    const overlayImg = new Image();
+                    overlayImg.crossOrigin = "Anonymous";
+                    overlayImg.src = img.dataset.src;
+                    overlayImg.onload = () => {
+                        const dpr = window.devicePixelRatio || 1;
+                        const overlay = {
+                            image: overlayImg,
+                            x: (canvas.width / dpr) / 2,
+                            y: (canvas.height / dpr) / 2,
+                            rotation: 0,
+                            scale: 0.2,
+                            initialWidth: overlayImg.width,
+                            initialHeight: overlayImg.height
+                        };
+                        overlays.push(overlay);
+                        activeOverlay = overlay;
+                        document.getElementById('rotationSlider').value = 180;
+                        document.getElementById('scaleSlider').value = 37.5;
+                        updateDeleteButtonState();
+                        drawCanvas();
+                    };
+                }
+            });
+        });
+
+        // Touch event handlers
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd);
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const pos = getTouchPos(touch);
+            
+            const clickedOverlay = findClickedOverlay(pos.x, pos.y);
+            activeOverlay = clickedOverlay;
+            updateDeleteButtonState();
+            
+            if (clickedOverlay) {
+                isDragging = true;
+                startX = pos.x - clickedOverlay.x;
+                startY = pos.y - clickedOverlay.y;
+                
+                document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
+                document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
+            }
+            
+            drawCanvas();
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDragging || !activeOverlay) return;
+
+            const touch = e.touches[0];
+            const pos = getTouchPos(touch);
+            
+            activeOverlay.x = pos.x - startX;
+            activeOverlay.y = pos.y - startY;
+            drawCanvas();
+        }
+
+        function handleTouchEnd() {
+            isDragging = false;
+        }
+
+        // Mouse event handlers
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+
+        function handleMouseDown(e) {
+            const pos = getMousePos(e);
+            const clickedOverlay = findClickedOverlay(pos.x, pos.y);
+            
+            activeOverlay = clickedOverlay;
+            updateDeleteButtonState();
+            
+            if (clickedOverlay) {
+                isDragging = true;
+                startX = pos.x - clickedOverlay.x;
+                startY = pos.y - clickedOverlay.y;
+                
+                document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
+                document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
+            }
+            
+            drawCanvas();
+        }
+
+        function handleMouseMove(e) {
+            if (!isDragging || !activeOverlay) return;
+
+            const pos = getMousePos(e);
+            activeOverlay.x = pos.x - startX;
+            activeOverlay.y = pos.y - startY;
+            drawCanvas();
+        }
+
+        function handleMouseUp() {
+            isDragging = false;
+        }
+
+        // Position calculation helpers
+        function getTouchPos(touch) {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            return {
+                x: (touch.clientX - rect.left) * dpr,
+                y: (touch.clientY - rect.top) * dpr
+            };
+        }
+
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            return {
+                x: (e.clientX - rect.left) * dpr,
+                y: (e.clientY - rect.top) * dpr
+            };
+        }
+
+        // Find clicked overlay with improved hit detection
+        function findClickedOverlay(x, y) {
+            const dpr = window.devicePixelRatio || 1;
+            const clicked = overlays.slice().reverse().find(overlay => {
+                const dx = (x - overlay.x);
+                const dy = (y - overlay.y);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance < (overlay.image.width * overlay.scale * dpr / 2);
+            });
+            return clicked || null;
+        }
+
+        // Slider event handlers
+        document.getElementById('rotationSlider').addEventListener('input', e => {
+            if (activeOverlay) {
+                const sliderValue = parseInt(e.target.value);
+                activeOverlay.rotation = sliderValue - 180;
+                drawCanvas();
+            }
+        });
+
+        document.getElementById('scaleSlider').addEventListener('input', e => {
+            if (activeOverlay) {
+                const scaleValue = parseInt(e.target.value);
+                activeOverlay.scale = scaleValue / 100;
+                drawCanvas();
+            }
+        });
+
+        // Delete button handler
+        document.getElementById('deleteButton').addEventListener('click', () => {
+            if (activeOverlay) {
+                overlays = overlays.filter(overlay => overlay !== activeOverlay);
+                activeOverlay = null;
+                updateDeleteButtonState();
+                drawCanvas();
+                
+                document.getElementById('rotationSlider').value = 180;
+                document.getElementById('scaleSlider').value = 37.5;
+            }
+        });
+
+        // Preview button handler
+        document.getElementById('previewButton').addEventListener('click', async () => {
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.style.display = 'flex';
+            
+            try {
+                const exportCanvas = await generateHighResCanvas();
+                const previewImage = document.getElementById('previewImage');
+                previewImage.src = exportCanvas.toDataURL('image/png');
+                document.getElementById('previewModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Preview generation failed:', error);
+                statusHandler.show('Error generating preview', 'error');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        });
 
-            const exportCanvas = await generateHighResCanvas();
-            const imageFile = await convertCanvasToFile(exportCanvas);
+        // Share handlers
+        function downloadImage() {
+            shareImage('download');
+        }
+
+        function shareToTelegram() {
+            shareImage('telegram');
+        }
+
+        function shareToOthers() {
+            shareImage('share');
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.BackButton.hide();
+            }
+        }
+
+        function updateDeleteButtonState() {
+            const deleteButton = document.getElementById('deleteButton');
+            deleteButton.classList.toggle('disabled', !activeOverlay);
+        }
+
+        // Initialize application
+        window.addEventListener('load', function() {
+            initializeCanvas();
             
             if (window.Telegram?.WebApp) {
-                // Convert file to base64
-                const reader = new FileReader();
-                reader.onloadend = function() {
-                    const base64data = reader.result.split(',')[1];
-                    // Send as proper format for Telegram
-                    window.Telegram.WebApp.sendData(JSON.stringify({
-                        type: 'dm_image',
-                        data: base64data,
-                        filename: 'meme.png',
-                        caption: 'Here\'s your meme!'
-                    }));
-                    loadingOverlay.style.display = 'none';
-                };
-                reader.readAsDataURL(imageFile);
-            }
-        } catch (error) {
-            console.error('Error sending to DM:', error);
-            alert('Error sending image. Please try another sharing method.');
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
-    }
-
-    // Enhanced share functionality
-    async function shareImage(method) {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        loadingOverlay.style.display = 'flex';
-        
-        try {
-            const exportCanvas = await generateHighResCanvas();
-            const imageFile = await convertCanvasToFile(exportCanvas);
-            
-            switch (method) {
-                case 'download':
-                    const url = URL.createObjectURL(imageFile);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'meme.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    break;
-
-                case 'telegram':
-                    if (window.Telegram?.WebApp) {
-                        const reader = new FileReader();
-                        reader.onloadend = function() {
-                            const base64data = reader.result.split(',')[1];
-                            window.Telegram.WebApp.sendData(JSON.stringify({
-                                type: 'share_image',
-                                data: base64data
-                            }));
-                        };
-                        reader.readAsDataURL(imageFile);
+                const webapp = window.Telegram.WebApp;
+                webapp.ready();
+                
+                if (webapp.themeParams) {
+                    document.documentElement.style.setProperty('--dark-bg', webapp.themeParams.secondary_bg_color);
+                    document.documentElement.style.setProperty('--neon-blue', webapp.themeParams.button_color);
+                }
+                
+                webapp.MainButton.setText('Export Meme');
+                webapp.MainButton.onClick(sendToDM);
+                
+                // Handle back button for modal
+                webapp.BackButton.onClick(() => {
+                    if (document.getElementById('previewModal').style.display === 'flex') {
+                        closePreview();
+                    } else {
+                        webapp.close();
                     }
-                    break;
-
-                case 'share':
-                    try {
-                        if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
-                            await navigator.share({
-                                files: [imageFile],
-                                title: 'My Meme',
-                                text: 'Check out my meme!'
-                            });
-                        } else {
-                            // Fallback if file sharing is not supported
-                            const dataUrl = exportCanvas.toDataURL('image/png');
-                            await navigator.share({
-                                title: 'My Meme',
-                                text: 'Check out my meme!',
-                                url: dataUrl
-                            });
-                        }
-                    } catch (err) {
-                        console.error('Share failed:', err);
-                        downloadImage();
-                    }
-                    break;
+                });
             }
-        } catch (error) {
-            console.error('Error sharing:', error);
-            alert('Error sharing image. Please try downloading instead.');
-        } finally {
-            loadingOverlay.style.display = 'none';
-        }
-    }
+        });
 
-    // Helper functions for sharing
-    function downloadImage() {
-        shareImage('download');
-    }
-
-    function shareToTelegram() {
-        shareImage('telegram');
-    }
-
-    function shareToOthers() {
-        shareImage('share');
-    }
-    // Modified rotation handler with improved center-based rotation
-    document.getElementById('rotationSlider').addEventListener('input', e => {
-        if (activeOverlay) {
-            // Convert slider value to -180 to +180 range
-            const sliderValue = parseInt(e.target.value);
-            activeOverlay.rotation = sliderValue - 180;
-            drawCanvas();
-        }
-    });
-
-    // Modified scale handler with improved range
-    document.getElementById('scaleSlider').addEventListener('input', e => {
-        if (activeOverlay) {
-            const scaleValue = parseInt(e.target.value);
-            activeOverlay.scale = scaleValue / 100;
-            drawCanvas();
-        }
-    });
-
-    // Enhanced delete button handler with proper state management
-    document.getElementById('deleteButton').addEventListener('click', () => {
-        if (activeOverlay) {
-            overlays = overlays.filter(overlay => overlay !== activeOverlay);
-            activeOverlay = null;
-            updateDeleteButtonState();
-            drawCanvas();
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (activeOverlay) {
+                switch(e.key) {
+                    case 'Delete':
+                    case 'Backspace':
+                        document.getElementById('deleteButton').click();
+                        break;
+                    case 'Escape':
+                        activeOverlay = null;
+                        updateDeleteButtonState();
+                        drawCanvas();
+                        break;
+                }
+            }
             
-            // Reset sliders to default positions
-            document.getElementById('rotationSlider').value = 180;
-            document.getElementById('scaleSlider').value = 37.5;
-        }
-    });
-
-    // Preview functionality with enhanced image quality
-    document.getElementById('previewButton').addEventListener('click', async () => {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        loadingOverlay.style.display = 'flex';
-        
-        try {
-            const exportCanvas = await generateHighResCanvas();
-            const previewImage = document.getElementById('previewImage');
-            previewImage.src = exportCanvas.toDataURL('image/png');
-            document.getElementById('previewModal').style.display = 'flex';
-        } catch (error) {
-            console.error('Preview generation failed:', error);
-            alert('Error generating preview. Please try again.');
-        } finally {
-            loadingOverlay.style.display = 'none';
-        }
-    });
-
-    function closePreview() {
-        document.getElementById('previewModal').style.display = 'none';
-    }
-
-    // Enhanced Telegram WebApp specific initialization
-    if (window.Telegram?.WebApp) {
-        const webapp = window.Telegram.WebApp;
-        webapp.ready();
-        
-        // Set theme colors based on Telegram theme
-        if (webapp.themeParams) {
-            document.documentElement.style.setProperty('--dark-bg', webapp.themeParams.secondary_bg_color);
-            document.documentElement.style.setProperty('--neon-blue', webapp.themeParams.button_color);
-        }
-        
-        // Handle back button for modal
-        webapp.BackButton.onClick(() => {
-            if (document.getElementById('previewModal').style.display === 'flex') {
+            if (e.key === 'Escape' && document.getElementById('previewModal').style.display === 'flex') {
                 closePreview();
-                webapp.BackButton.hide();
-            } else {
-                webapp.close();
             }
         });
 
-        // Show back button when preview is opened
-        document.getElementById('previewButton').addEventListener('click', () => {
-            webapp.BackButton.show();
+        // Handle window resizing
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                initializeCanvas();
+                drawCanvas();
+            }, 250);
         });
-
-        // Hide back button when preview is closed
-        document.querySelector('.modal-close').addEventListener('click', () => {
-            webapp.BackButton.hide();
-        });
-
-        // Handle main button for export
-        webapp.MainButton.setText('Export Meme');
-        webapp.MainButton.onClick(() => {
-            sendToDM();
-        });
-    }
-
-    // Add keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        if (activeOverlay) {
-            switch(e.key) {
-                case 'Delete':
-                case 'Backspace':
-                    // Trigger delete button
-                    document.getElementById('deleteButton').click();
-                    break;
-                case 'Escape':
-                    // Deselect active overlay
-                    activeOverlay = null;
-                    updateDeleteButtonState();
-                    drawCanvas();
-                    break;
-            }
-        }
-        
-        if (e.key === 'Escape' && document.getElementById('previewModal').style.display === 'flex') {
-            closePreview();
-        }
-    });
-
-    // Handle window resizing smoothly
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            initializeCanvas();
-            drawCanvas();
-        }, 250);
-    });
-
-    // Initialize the application
-    initializeCanvas();
-
-    // Add error boundary
-    window.addEventListener('error', (event) => {
-        console.error('Application error:', event.error);
-        document.getElementById('loadingOverlay').style.display = 'none';
-        alert('An error occurred. Please try again.');
-    });
-
-    // Add unload handler to clean up resources
-    window.addEventListener('beforeunload', () => {
-        overlays.forEach(overlay => {
-            if (overlay.image.src) {
-                URL.revokeObjectURL(overlay.image.src);
-            }
-        });
-    });
     </script>
 </body>
 </html>
-
