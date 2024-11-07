@@ -1,3 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enhanced Meme Maker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- Security headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdnjs.cloudflare.com data: blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,">
+    
+    <!-- Enhanced Platform Detection Script -->
+    <script>
+        window.platformConfig = {
+            isTelegram: Boolean(window.Telegram?.WebApp),
+            isPC: !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)),
+            init: function() {
+                console.log('Initial platform detection:', {
+                    isTelegram: this.isTelegram,
+                    isPC: this.isPC
+                });
+                
+                // Initialize Telegram WebApp if available
+                if (this.isTelegram && window.Telegram?.WebApp) {
+                    console.log('Initializing Telegram WebApp...');
+                    window.Telegram.WebApp.ready();
+                    window.Telegram.WebApp.expand();
+                    
+                    // Initialize MainButton
+                    if (window.Telegram.WebApp.MainButton) {
+                        window.Telegram.WebApp.MainButton.setText('Export Meme');
+                        window.Telegram.WebApp.MainButton.show();
+                    }
+                    
+                    console.log('Telegram WebApp initialized');
+                }
+
+                // Set platform attribute on body
+                document.body.setAttribute('data-platform', this.isPC ? 'pc' : 'mobile');
+                this.updateUIForPlatform();
+            },
+
+            updateUIForPlatform: function() {
+                // Update UI elements based on platform
+                const pcElements = document.querySelectorAll('.pc-only');
+                const mobileElements = document.querySelectorAll('.mobile-only');
+                
+                pcElements.forEach(el => {
+                    el.style.display = this.isPC ? 'flex' : 'none';
+                });
+                
+                mobileElements.forEach(el => {
+                    el.style.display = !this.isPC ? 'flex' : 'none';
+                });
+            },
+
+            isTelegramWebApp: function() {
+                return Boolean(window.Telegram?.WebApp?.initData);
+            }
+        };
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            window.platformConfig.init();
+        });
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
 <script>
 // Enhanced sharing functionality
 const sharingUtils = {
