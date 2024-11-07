@@ -1,74 +1,320 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Enhanced Meme Maker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
-    <!-- Security headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdnjs.cloudflare.com data: blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*;">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,">
-    
-    <!-- Enhanced Platform Detection Script -->
-    <script>
-        window.platformConfig = {
-            isTelegram: Boolean(window.Telegram?.WebApp),
-            isPC: !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)),
-            init: function() {
-                console.log('Initial platform detection:', {
-                    isTelegram: this.isTelegram,
-                    isPC: this.isPC
-                });
-                
-                // Initialize Telegram WebApp if available
-                if (this.isTelegram && window.Telegram?.WebApp) {
-                    console.log('Initializing Telegram WebApp...');
-                    window.Telegram.WebApp.ready();
-                    window.Telegram.WebApp.expand();
-                    
-                    // Initialize MainButton
-                    if (window.Telegram.WebApp.MainButton) {
-                        window.Telegram.WebApp.MainButton.setText('Export Meme');
-                        window.Telegram.WebApp.MainButton.show();
-                    }
-                    
-                    console.log('Telegram WebApp initialized');
-                }
+<script>
+// Enhanced sharing functionality
+const sharingUtils = {
+    async generateHighResCanvas() {
+        debugUtils.log('Generating high-res canvas');
+        const exportCanvas = document.createElement('canvas');
+        const exportCtx = exportCanvas.getContext('2d');
+        const scale = 2;
 
-                // Set platform attribute on body
-                document.body.setAttribute('data-platform', this.isPC ? 'pc' : 'mobile');
-                this.updateUIForPlatform();
-            },
+        exportCanvas.width = canvas.width * scale;
+        exportCanvas.height = canvas.height * scale;
 
-            updateUIForPlatform: function() {
-                // Update UI elements based on platform
-                const pcElements = document.querySelectorAll('.pc-only');
-                const mobileElements = document.querySelectorAll('.mobile-only');
-                
-                pcElements.forEach(el => {
-                    el.style.display = this.isPC ? 'flex' : 'none';
-                });
-                
-                mobileElements.forEach(el => {
-                    el.style.display = !this.isPC ? 'flex' : 'none';
-                });
-            },
-
-            isTelegramWebApp: function() {
-                return Boolean(window.Telegram?.WebApp?.initData);
+        try {
+            exportCtx.scale(scale * canvasScale, scale * canvasScale);
+            
+            if (baseImage.src) {
+                const dimensions = this.calculateImageDimensions();
+                exportCtx.drawImage(baseImage, dimensions.x, dimensions.y, 
+                                 dimensions.width, dimensions.height);
             }
-        };
 
-        // Initialize on load
-        window.addEventListener('DOMContentLoaded', () => {
-            window.platformConfig.init();
+            overlays.forEach(overlay => {
+                this.drawOverlayToCanvas(exportCtx, overlay, canvasScale);
+            });
+
+            debugUtils.log('High-res canvas generated', {
+                width: exportCanvas.width,
+                height: exportCanvas.height
+            });
+
+            return exportCanvas;
+        } catch (error) {
+            errorHandler.handle(error, 'generating high-res canvas');
+            throw new Error('Failed to generate image');
+        }
+    },
+
+    calculateImageDimensions() {
+        const imgRatio = baseImage.width / baseImage.height;
+        const canvasRatio = canvas.width / canvas.height;
+        let width, height, x, y;
+
+        if (imgRatio > canvasRatio) {
+            width = canvas.width / canvasScale;
+            height = (canvas.width / canvasScale) / imgRatio;
+            x = 0;
+            y = (canvas.height / canvasScale - height) / 2;
+        } else {
+            height = canvas.height / canvasScale;
+            width = (canvas.height / canvasScale) * imgRatio;
+            x = (canvas.width / canvasScale - width) / 2;
+            y = 0;
+        }
+
+        return { width, height, x, y };
+    },
+
+    drawOverlayToCanvas(ctx, overlay, scale) {
+        ctx.save();
+        const x = overlay.x / scale;
+        const y = overlay.y / scale;
+        
+        ctx.translate(x, y);
+        ctx.rotate(overlay.rotation * Math.PI / 180);
+        ctx.scale(overlay.scale, overlay.scale);
+        
+        ctx.drawImage(
+            overlay.image,
+            -overlay.image.width / 2,
+            -overlay.image.height / 2
+        );
+        
+        ctx.restore();
+    },
+
+    async convertCanvasToFile(canvas) {
+        try {
+            return new Promise((resolve, reject) => {
+                canvas.toBlob(blob => {
+                    if (blob) {
+                        const file = new File([blob], 'meme.png', { 
+                            type: 'image/png',
+                            lastModified: Date.now()
+                        });
+                        resolve(file);
+                    } else {
+                        reject(new Error('Failed to create image file'));
+                    }
+                }, 'image/png', 1.0);
+            });
+        } catch (error) {
+            errorHandler.handle(error, 'converting canvas to file');
+            throw error;
+        }
+    }
+};
+
+// Mobile clipboard implementation
+async function copyToMobileClipboard() {
+    loadingHandler.show('Copying to clipboard...');
+    
+    try {
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const success = await clipboardUtils.copyImageToClipboard(exportCanvas);
+        
+        if (success) {
+            statusHandler.show('Image copied! You can now paste it in your chats', 'success', 4000);
+            closePreview();
+        } else {
+            throw new Error('Failed to copy image');
+        }
+    } catch (error) {
+        errorHandler.handle(error, 'copying to mobile clipboard');
+        statusHandler.show('Unable to copy image. Try saving it instead.', 'error');
+    } finally {
+        loadingHandler.hide();
+    }
+}
+
+// Enhanced sharing functionality
+async function sendToDM() {
+    loadingHandler.show('Processing image...');
+    
+    try {
+        debugUtils.log('Starting sendToDM process');
+        
+        if (!window.Telegram?.WebApp) {
+            throw new Error('Telegram WebApp not available');
+        }
+
+        loadingHandler.updateMessage('Generating image...');
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        
+        loadingHandler.updateMessage('Preparing file...');
+        const imageFile = await sharingUtils.convertCanvasToFile(exportCanvas);
+        
+        loadingHandler.updateMessage('Compressing image...');
+        const compressedImage = await imageUtils.compressImage(imageFile);
+        
+        loadingHandler.updateMessage('Converting to base64...');
+        const base64Data = await imageUtils.convertToBase64(compressedImage);
+        
+        debugUtils.log('Sending data to Telegram', {
+            fileSize: compressedImage.size
         });
-    </script>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
+        window.Telegram.WebApp.sendData(JSON.stringify({
+            type: 'dm_image',
+            data: base64Data,
+            filename: 'meme.png',
+            caption: 'Here\'s your meme!',
+            timestamp: Date.now()
+        }));
+
+        statusHandler.show('Meme sent successfully!', 'success');
+        closePreview();
+    } catch (error) {
+        errorHandler.handle(error, 'sending to DM');
+        if (platformUtils.isTelegram) {
+            window.Telegram.WebApp.showAlert('Failed to send meme. Please try again.');
+        }
+    } finally {
+        loadingHandler.hide();
+    }
+}
+
+async function downloadImage() {
+    loadingHandler.show('Preparing download...');
+    
+    try {
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const imageFile = await sharingUtils.convertCanvasToFile(exportCanvas);
+        
+        const url = URL.createObjectURL(imageFile);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'meme.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        statusHandler.show('Image downloaded successfully!', 'success');
+    } catch (error) {
+        errorHandler.handle(error, 'downloading image');
+    } finally {
+        loadingHandler.hide();
+    }
+}
+
+async function copyToClipboard() {
+    loadingHandler.show('Copying to clipboard...');
+    
+    try {
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const blob = await new Promise(resolve => exportCanvas.toBlob(resolve));
+        
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                [blob.type]: blob
+            })
+        ]);
+        
+        statusHandler.show('Copied to clipboard!', 'success');
+    } catch (error) {
+        errorHandler.handle(error, 'copying to clipboard');
+    } finally {
+        loadingHandler.hide();
+    }
+}
+
+async function shareToSocial() {
+    loadingHandler.show('Preparing to share...');
+    
+    try {
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const imageFile = await sharingUtils.convertCanvasToFile(exportCanvas);
+        
+        if (navigator.share) {
+            await navigator.share({
+                files: [imageFile],
+                title: 'Check out my meme!',
+                text: 'Created with Meme Maker'
+            });
+            statusHandler.show('Shared successfully!', 'success');
+        } else {
+            // Try copying to clipboard first
+            const success = await clipboardUtils.copyImageToClipboard(exportCanvas);
+            if (success) {
+                statusHandler.show('Image copied! You can now paste it in your chats', 'success', 4000);
+            } else {
+                // Fallback to download if sharing and copying fail
+                downloadImage();
+            }
+        }
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            errorHandler.handle(error, 'sharing to social');
+        }
+    } finally {
+        loadingHandler.hide();
+    }
+}
+
+function closePreview() {
+    document.getElementById('previewModal').style.display = 'none';
+    if (platformUtils.isTelegram && window.Telegram?.WebApp) {
+        window.Telegram.WebApp.BackButton.hide();
+    }
+}
+
+// Initialize everything when the window loads
+window.addEventListener('load', function() {
+    debugUtils.log('Window loaded, initializing app');
+    platformUtils.init();
+    canvasUtils.init();
+    
+    // Initialize Telegram WebApp if available
+    if (platformUtils.isTelegram && window.Telegram?.WebApp) {
+        const webapp = window.Telegram.WebApp;
+        
+        webapp.MainButton.setText('Export Meme');
+        webapp.MainButton.onClick(sendToDM);
+        webapp.MainButton.show();
+        
+        webapp.BackButton.onClick(() => {
+            if (document.getElementById('previewModal').style.display === 'flex') {
+                closePreview();
+            } else {
+                webapp.close();
+            }
+        });
+        
+        debugUtils.log('Telegram WebApp initialized');
+    }
+});
+
+// Event Handlers
+document.getElementById('fileInput').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        loadingHandler.show('Processing image...');
+        try {
+            await imageUtils.processImage(file);
+            canvasUtils.draw();
+            statusHandler.show('Image loaded successfully!', 'success');
+        } catch (error) {
+            errorHandler.handle(error, 'file input');
+        } finally {
+            loadingHandler.hide();
+        }
+    }
+});
+
+// Initialize preview button
+document.getElementById('previewButton').addEventListener('click', async () => {
+    loadingHandler.show('Generating preview...');
+    
+    try {
+        debugUtils.log('Generating preview');
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const previewImage = document.getElementById('previewImage');
+        previewImage.src = exportCanvas.toDataURL('image/png');
+        document.getElementById('previewModal').style.display = 'flex';
+        
+        if (platformUtils.isTelegram && window.Telegram?.WebApp) {
+            window.Telegram.WebApp.BackButton.show();
+        }
+    } catch (error) {
+        errorHandler.handle(error, 'generating preview');
+    } finally {
+        loadingHandler.hide();
+    }
+});
+</script>
+</body>
+</html>
 <style>
         :root {
             --neon-pink: #ff71ce;
@@ -342,6 +588,30 @@
             font-size: 20px;
         }
 
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-pink);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 18px;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+
         .preview-image-container {
             width: 100%;
             margin-bottom: 20px;
@@ -575,9 +845,14 @@
         </div>
     </div>
 
-    <!-- Enhanced Preview Modal with Mobile Copy Button -->
+    <!-- Enhanced Preview Modal with Close Button -->
     <div class="preview-modal" id="previewModal">
         <div class="preview-content">
+            <!-- Close button -->
+            <button class="close-modal" onclick="closePreview()">
+                <i class="fas fa-times"></i>
+            </button>
+
             <h2>Preview & Share</h2>
             <div class="preview-image-container">
                 <img id="previewImage" class="preview-image" alt="Preview">
@@ -605,6 +880,11 @@
 
                 <button class="share-button pc-only" onclick="shareToSocial()" data-action="social">
                     <i class="fas fa-share-alt"></i> Share
+                </button>
+
+                <!-- Back to Edit Button -->
+                <button class="share-button" onclick="closePreview()" data-action="back">
+                    <i class="fas fa-arrow-left"></i> Back to Edit
                 </button>
             </div>
         </div>
@@ -1179,7 +1459,118 @@ const sharingUtils = {
     }
 };
 
-// Mobile clipboard implementation
+// Event Handlers for overlays
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd);
+canvas.addEventListener('mousedown', handleMouseDown);
+canvas.addEventListener('mousemove', handleMouseMove);
+canvas.addEventListener('mouseup', handleMouseUp);
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const pos = getTouchPos(touch);
+    
+    const clickedOverlay = findClickedOverlay(pos.x, pos.y);
+    if (activeOverlay !== clickedOverlay) {
+        activeOverlay = clickedOverlay;
+        updateDeleteButtonState();
+        canvasUtils.draw();
+    }
+    
+    if (clickedOverlay) {
+        isDragging = true;
+        startX = pos.x - clickedOverlay.x;
+        startY = pos.y - clickedOverlay.y;
+        
+        document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
+        document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
+    }
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!isDragging || !activeOverlay) return;
+
+    const touch = e.touches[0];
+    const pos = getTouchPos(touch);
+    
+    activeOverlay.x = pos.x - startX;
+    activeOverlay.y = pos.y - startY;
+    
+    canvasUtils.draw();
+}
+
+function handleTouchEnd() {
+    isDragging = false;
+}
+
+function handleMouseDown(e) {
+    const pos = getMousePos(e);
+    const clickedOverlay = findClickedOverlay(pos.x, pos.y);
+    
+    if (activeOverlay !== clickedOverlay) {
+        activeOverlay = clickedOverlay;
+        updateDeleteButtonState();
+        canvasUtils.draw();
+    }
+    
+    if (clickedOverlay) {
+        isDragging = true;
+        startX = pos.x - clickedOverlay.x;
+        startY = pos.y - clickedOverlay.y;
+        
+        document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
+        document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
+    }
+}
+
+function handleMouseMove(e) {
+    if (!isDragging || !activeOverlay) return;
+
+    const pos = getMousePos(e);
+    activeOverlay.x = pos.x - startX;
+    activeOverlay.y = pos.y - startY;
+    
+    canvasUtils.draw();
+}
+
+function handleMouseUp() {
+    isDragging = false;
+}
+
+// Position calculation utilities
+function getTouchPos(touch) {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    return {
+        x: (touch.clientX - rect.left) * dpr,
+        y: (touch.clientY - rect.top) * dpr
+    };
+}
+
+function getMousePos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    return {
+        x: (e.clientX - rect.left) * dpr,
+        y: (e.clientY - rect.top) * dpr
+    };
+}
+
+function findClickedOverlay(x, y) {
+    const dpr = window.devicePixelRatio || 1;
+    return overlays.slice().reverse().find(overlay => {
+        const dx = (x - overlay.x);
+        const dy = (y - overlay.y);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const hitboxSize = overlay.image.width * overlay.scale * dpr / 2;
+        return distance < hitboxSize;
+    }) || null;
+}
+
+// Sharing Functions
 async function copyToMobileClipboard() {
     loadingHandler.show('Copying to clipboard...');
     
@@ -1201,7 +1592,6 @@ async function copyToMobileClipboard() {
     }
 }
 
-// Enhanced sharing functionality
 async function sendToDM() {
     loadingHandler.show('Processing image...');
     
@@ -1333,6 +1723,162 @@ function closePreview() {
     }
 }
 
+// Stogie selector handlers
+document.querySelectorAll('.stogie-option').forEach(option => {
+    option.addEventListener('click', () => {
+        const img = option.querySelector('img');
+        if (img) {
+            debugUtils.log('Stogie option clicked', {
+                src: img.dataset.src,
+                type: option.dataset.type
+            });
+
+            const overlayImg = new Image();
+            overlayImg.crossOrigin = "Anonymous";
+            overlayImg.src = img.dataset.src;
+            
+            overlayImg.onload = () => {
+                const dpr = window.devicePixelRatio || 1;
+                const overlay = {
+                    image: overlayImg,
+                    x: (canvas.width / dpr) / 2,
+                    y: (canvas.height / dpr) / 2,
+                    rotation: 0,
+                    scale: 0.2,
+                    initialWidth: overlayImg.width,
+                    initialHeight: overlayImg.height,
+                    type: option.dataset.type
+                };
+                
+                overlays.push(overlay);
+                activeOverlay = overlay;
+                document.getElementById('rotationSlider').value = 180;
+                document.getElementById('scaleSlider').value = 37.5;
+                updateDeleteButtonState();
+                canvasUtils.draw();
+                
+                debugUtils.log('Overlay added', {
+                    totalOverlays: overlays.length,
+                    overlayDimensions: {
+                        width: overlayImg.width,
+                        height: overlayImg.height
+                    }
+                });
+            };
+
+            overlayImg.onerror = () => {
+                errorHandler.handle(new Error('Failed to load overlay image'), 'loading overlay');
+            };
+        }
+    });
+});
+
+// Slider handlers
+document.getElementById('rotationSlider').addEventListener('input', e => {
+    if (activeOverlay) {
+        const sliderValue = parseInt(e.target.value);
+        activeOverlay.rotation = sliderValue - 180;
+        canvasUtils.draw();
+    }
+});
+
+document.getElementById('scaleSlider').addEventListener('input', e => {
+    if (activeOverlay) {
+        const scaleValue = parseInt(e.target.value);
+        activeOverlay.scale = scaleValue / 100;
+        canvasUtils.draw();
+    }
+});
+
+// Delete button handler
+document.getElementById('deleteButton').addEventListener('click', () => {
+    if (activeOverlay) {
+        overlays = overlays.filter(overlay => overlay !== activeOverlay);
+        activeOverlay = null;
+        updateDeleteButtonState();
+        canvasUtils.draw();
+        
+        document.getElementById('rotationSlider').value = 180;
+        document.getElementById('scaleSlider').value = 37.5;
+        
+        statusHandler.show('Item deleted', 'success');
+    }
+});
+
+function updateDeleteButtonState() {
+    const deleteButton = document.getElementById('deleteButton');
+    deleteButton.classList.toggle('disabled', !activeOverlay);
+}
+
+// Initialize preview button
+document.getElementById('previewButton').addEventListener('click', async () => {
+    loadingHandler.show('Generating preview...');
+    
+    try {
+        debugUtils.log('Generating preview');
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const previewImage = document.getElementById('previewImage');
+        previewImage.src = exportCanvas.toDataURL('image/png');
+        document.getElementById('previewModal').style.display = 'flex';
+        
+        if (platformUtils.isTelegram && window.Telegram?.WebApp) {
+            window.Telegram.WebApp.BackButton.show();
+        }
+    } catch (error) {
+        errorHandler.handle(error, 'generating preview');
+    } finally {
+        loadingHandler.hide();
+    }
+});
+
+// File input handler
+document.getElementById('fileInput').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        loadingHandler.show('Processing image...');
+        try {
+            await imageUtils.processImage(file);
+            canvasUtils.draw();
+            statusHandler.show('Image loaded successfully!', 'success');
+        } catch (error) {
+            errorHandler.handle(error, 'file input');
+        } finally {
+            loadingHandler.hide();
+        }
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (activeOverlay) {
+        switch(e.key) {
+            case 'Delete':
+            case 'Backspace':
+                document.getElementById('deleteButton').click();
+                break;
+            case 'Escape':
+                activeOverlay = null;
+                updateDeleteButtonState();
+                canvasUtils.draw();
+                break;
+        }
+    }
+    
+    if (e.key === 'Escape' && document.getElementById('previewModal').style.display === 'flex') {
+        closePreview();
+    }
+});
+
+// Window resize handler
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        debugUtils.log('Window resized');
+        canvasUtils.init();
+    }, 250);
+});
+
 // Initialize everything when the window loads
 window.addEventListener('load', function() {
     debugUtils.log('Window loaded, initializing app');
@@ -1356,44 +1902,6 @@ window.addEventListener('load', function() {
         });
         
         debugUtils.log('Telegram WebApp initialized');
-    }
-});
-
-// Event Handlers
-document.getElementById('fileInput').addEventListener('change', async function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        loadingHandler.show('Processing image...');
-        try {
-            await imageUtils.processImage(file);
-            canvasUtils.draw();
-            statusHandler.show('Image loaded successfully!', 'success');
-        } catch (error) {
-            errorHandler.handle(error, 'file input');
-        } finally {
-            loadingHandler.hide();
-        }
-    }
-});
-
-// Initialize preview button
-document.getElementById('previewButton').addEventListener('click', async () => {
-    loadingHandler.show('Generating preview...');
-    
-    try {
-        debugUtils.log('Generating preview');
-        const exportCanvas = await sharingUtils.generateHighResCanvas();
-        const previewImage = document.getElementById('previewImage');
-        previewImage.src = exportCanvas.toDataURL('image/png');
-        document.getElementById('previewModal').style.display = 'flex';
-        
-        if (platformUtils.isTelegram && window.Telegram?.WebApp) {
-            window.Telegram.WebApp.BackButton.show();
-        }
-    } catch (error) {
-        errorHandler.handle(error, 'generating preview');
-    } finally {
-        loadingHandler.hide();
     }
 });
 </script>
