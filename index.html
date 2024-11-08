@@ -602,16 +602,15 @@ const platformUtils = {
         const button = document.getElementById('openInBrowserButton');
         if (button) {
             button.onclick = () => {
-                // Get the current URL without any query parameters
+                // Get the current URL
                 const currentUrl = `${window.location.origin}${window.location.pathname}`;
                 
-                // Use Telegram's openLink method with try_instant_view: false
-                // This forces opening in external browser
-                if (window.Telegram?.WebApp?.openLink) {
-                    window.Telegram.WebApp.openLink(currentUrl, {
-                        try_instant_view: false,
-                        force_external_browser: true
-                    });
+                // Create special external URL scheme
+                const externalUrl = `tg://external?url=${encodeURIComponent(currentUrl)}`;
+                
+                // Use Telegram's openTgLink to force external opening
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.openTgLink(externalUrl);
                 }
             };
         }
