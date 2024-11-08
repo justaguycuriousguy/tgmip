@@ -606,18 +606,26 @@ const platformUtils = {
         const button = document.getElementById('openInBrowserButton');
         if (button) {
             button.onclick = () => {
-                // Get current URL without any Telegram parameters
-                const currentUrl = window.location.href;
-                const cleanUrl = currentUrl.split('?')[0]; // Remove any query parameters
-
-                // Use window.location.href to force opening in default browser
-                if (window.Telegram?.WebApp?.close) {
-                    // First close the Telegram WebApp
-                    window.Telegram.WebApp.close();
-                }
+                // Get base URL of the current page
+                const currentUrl = `${window.location.origin}${window.location.pathname}`;
                 
-                // Open in default browser
-                window.location.href = `https://telegram.me/share/url?url=${encodeURIComponent(cleanUrl)}`;
+                // Create an anchor element to open in default browser
+                const link = document.createElement('a');
+                link.href = currentUrl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                
+                // Simulate click to open in default browser
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Close the Telegram WebApp after a short delay
+                setTimeout(() => {
+                    if (window.Telegram?.WebApp) {
+                        window.Telegram.WebApp.close();
+                    }
+                }, 100);
             };
         }
 
