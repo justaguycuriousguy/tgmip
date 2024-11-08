@@ -574,15 +574,11 @@ const platformUtils = {
             isTelegramWebView: this.isInTelegramWebView()
         });
 
-        // Set platform attribute on body
         document.body.setAttribute('data-platform', this.isMobile ? 'mobile' : 'pc');
         
-        // Only show redirect if in Telegram WebView
         if (this.isMobile && this.isInTelegramWebView()) {
             console.log('Telegram mobile WebView detected, showing redirect');
             this.showMobileRedirectPrompt();
-        } else {
-            console.log('Browser or desktop detected, not showing redirect');
         }
     },
 
@@ -606,26 +602,17 @@ const platformUtils = {
         const button = document.getElementById('openInBrowserButton');
         if (button) {
             button.onclick = () => {
-                // Get base URL of the current page
+                // Get the current URL without any query parameters
                 const currentUrl = `${window.location.origin}${window.location.pathname}`;
                 
-                // Create an anchor element to open in default browser
-                const link = document.createElement('a');
-                link.href = currentUrl;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                
-                // Simulate click to open in default browser
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // Close the Telegram WebApp after a short delay
-                setTimeout(() => {
-                    if (window.Telegram?.WebApp) {
-                        window.Telegram.WebApp.close();
-                    }
-                }, 100);
+                // Use Telegram's openLink method with try_instant_view: false
+                // This forces opening in external browser
+                if (window.Telegram?.WebApp?.openLink) {
+                    window.Telegram.WebApp.openLink(currentUrl, {
+                        try_instant_view: false,
+                        force_external_browser: true
+                    });
+                }
             };
         }
 
