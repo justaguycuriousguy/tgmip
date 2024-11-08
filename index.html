@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <!-- Security headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdnjs.cloudflare.com data: blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://*;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdnjs.cloudflare.com data: blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://telegram.org; img-src 'self' data: blob: https://*;">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,">
@@ -26,7 +26,6 @@
         </div>
 
         <div class="stogie-selector" id="stogieSelector">
-            <!-- Enhanced stogie options with data attributes -->
             <div class="stogie-option" data-type="stogie">
                 <img src="images/stogie.png" alt="Stogie 1" data-src="images/stogie.png">
             </div>
@@ -89,14 +88,27 @@
         </div>
     </div>
 
-    <!-- Mobile Redirect Modal -->
-    <div class="mobile-redirect-modal" id="mobileRedirectModal">
-        <div class="modal-content">
-            <h2>Better Experience Available!</h2>
-            <p>For full access to all features including downloading and sharing, please open this app in your mobile browser.</p>
-            <button class="button" id="openInBrowserButton">
-                <i class="fas fa-external-link-alt"></i> Open in Browser
-            </button>
+    <!-- Instruction Overlay -->
+    <div class="instruction-overlay" id="instructionOverlay">
+        <div class="instruction-content">
+            <div class="step-1">
+                <div class="custom-arrow">
+                    <svg viewBox="0 0 50 50">
+                        <path d="M10 25 L40 25 M30 15 L40 25 L30 35" />
+                    </svg>
+                </div>
+                <div class="instruction-text">
+                    To enable downloading, copying and sharing, tap the three dots (⋮) in the top right corner! ✨
+                    <button class="got-it-btn" onclick="showStep2()">Got it!</button>
+                </div>
+            </div>
+            
+            <div class="step-2">
+                <div class="instruction-text">
+                    Perfect! Now select "Open in Browser" to continue with full features enabled! 🚀
+                    <button class="got-it-btn" onclick="closeInstructions()">Let's go!</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -108,459 +120,539 @@
 
     <!-- Status Messages Container -->
     <div class="status-message" id="statusMessage"></div>
-
 <style>
-        :root {
-            --neon-pink: #ff71ce;
-            --neon-blue: #01cdfe;
-            --neon-purple: #b967ff;
-            --neon-green: #05ffa1;
-            --dark-bg: #1a1a2e;
-            --grid-color: rgba(255, 113, 206, 0.1);
-            --modal-bg: rgba(26, 26, 46, 0.95);
-            --error-red: #ff4444;
-            --success-green: #00C851;
-            --warning-yellow: #ffbb33;
-            --retrowave-gradient: linear-gradient(
-                45deg,
-                var(--neon-pink),
-                var(--neon-purple),
-                var(--neon-blue)
-            );
-            --telegram-blue: #0088cc;
-        }
+    :root {
+        --neon-pink: #ff71ce;
+        --neon-blue: #01cdfe;
+        --neon-purple: #b967ff;
+        --neon-green: #05ffa1;
+        --dark-bg: #1a1a2e;
+        --grid-color: rgba(255, 113, 206, 0.1);
+        --modal-bg: rgba(26, 26, 46, 0.95);
+        --error-red: #ff4444;
+        --success-green: #00C851;
+        --warning-yellow: #ffbb33;
+        --retrowave-gradient: linear-gradient(
+            45deg,
+            var(--neon-pink),
+            var(--neon-purple),
+            var(--neon-blue)
+        );
+        --telegram-blue: #0088cc;
+    }
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-            touch-action: manipulation;
-            margin: 0;
-            padding: 0;
-        }
+    * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+        margin: 0;
+        padding: 0;
+    }
 
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+        margin: 0;
+        padding: 16px;
+        background-color: var(--dark-bg);
+        color: white;
+        min-height: 100vh;
+        overscroll-behavior: none;
+        position: relative;
+    }
+
+    .app-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .canvas-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 75%;
+        margin-bottom: 8px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 12px;
+        border: 2px solid var(--neon-blue);
+        box-shadow: 0 0 15px var(--neon-blue);
+        overflow: hidden;
+    }
+
+    .canvas-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        background: #000;
+    }
+
+    #memeCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        display: block;
+    }
+
+    .stogie-selector {
+        width: 100%;
+        margin: 8px 0;
+        display: flex;
+        gap: 10px;
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid var(--neon-pink);
+        border-radius: 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: 0 0 10px var(--neon-pink);
+        backdrop-filter: blur(5px);
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .stogie-selector::-webkit-scrollbar {
+        display: none;
+    }
+
+    .stogie-option {
+        flex: 0 0 80px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid var(--neon-purple);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding: 5px;
+        position: relative;
+    }
+
+    .stogie-option:active {
+        transform: scale(0.95);
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .stogie-option img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        pointer-events: none;
+    }
+
+    .control-panel {
+        background: rgba(0, 0, 0, 0.5);
+        padding: 20px;
+        border-radius: 12px;
+        margin: 8px 0;
+        border: 1px solid var(--neon-green);
+        box-shadow: 0 0 10px var(--neon-green);
+        backdrop-filter: blur(5px);
+    }
+
+    .button {
+        background: var(--retrowave-gradient);
+        color: white;
+        border: none;
+        padding: 16px 20px;
+        border-radius: 8px;
+        font-size: 16px;
+        width: 100%;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-transform: uppercase;
+        font-weight: bold;
+        letter-spacing: 1px;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .button:active {
+        transform: scale(0.98);
+    }
+
+    .button::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(rgba(255,255,255,0.1), transparent);
+        pointer-events: none;
+    }
+
+    .delete-button {
+        background: linear-gradient(45deg, #ff0844, #ffb199);
+    }
+
+    .delete-button.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .slider-container {
+        margin: 16px 0;
+    }
+
+    .slider-container label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--neon-pink);
+        text-transform: uppercase;
+        font-size: 14px;
+        letter-spacing: 1px;
+    }
+
+    input[type="range"] {
+        width: 100%;
+        height: 36px;
+        -webkit-appearance: none;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        outline: none;
+        border: 1px solid var(--neon-blue);
+        margin: 0;
+        padding: 0;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 24px;
+        height: 24px;
+        background: var(--neon-purple);
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 10px var(--neon-purple);
+        border: none;
+        margin-top: -8px;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        border: none;
+    }
+
+    #fileInput {
+        display: none;
+    }
+
+    .preview-modal, .instruction-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--modal-bg);
+        z-index: 1000;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        touch-action: none;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .instruction-overlay {
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .preview-content, .instruction-content {
+        max-width: 800px;
+        margin: 0 auto;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid var(--neon-blue);
+        box-shadow: 0 0 20px var(--neon-blue);
+        position: relative;
+    }
+
+    .preview-content h2 {
+        margin: 0 0 20px 0;
+        text-align: center;
+        color: var(--neon-pink);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 20px;
+    }
+
+    .preview-image-container {
+        width: 100%;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #000;
+    }
+
+    .preview-image {
+        width: 100%;
+        display: block;
+        border-radius: 8px;
+    }
+
+    .share-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .share-button {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--neon-purple);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .share-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .share-button:active {
+        transform: translateY(0);
+    }
+
+    .share-button.download {
+        border-color: var(--neon-green);
+    }
+
+    .custom-arrow {
+        position: absolute;
+        top: 15px;
+        right: 45px;
+        animation: neonPulse 1.5s infinite;
+    }
+
+    .custom-arrow svg {
+        width: 60px;
+        height: 60px;
+        transform: rotate(-90deg);
+    }
+
+    .custom-arrow path {
+        fill: none;
+        stroke: var(--neon-pink);
+        stroke-width: 3;
+        filter: drop-shadow(0 0 8px var(--neon-pink));
+    }
+
+    .instruction-text {
+        margin-top: 100px;
+        font-size: 18px;
+        line-height: 1.5;
+        max-width: 300px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 20px;
+        border-radius: 12px;
+        border: 2px solid var(--neon-blue);
+        box-shadow: 0 0 15px var(--neon-blue);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .got-it-btn {
+        margin-top: 20px;
+        padding: 16px 24px;
+        background: var(--retrowave-gradient);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        width: 100%;
+    }
+
+    .got-it-btn:active {
+        transform: scale(0.95);
+    }
+
+    .step-2 {
+        display: none;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(5px);
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--neon-blue);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+        color: white;
+        font-size: 16px;
+        text-align: center;
+        max-width: 80%;
+        animation: pulse 1.5s infinite;
+    }
+
+    .status-message {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 2001;
+        pointer-events: none;
+        max-width: 90%;
+        text-align: center;
+        backdrop-filter: blur(5px);
+    }
+
+    .status-message.show {
+        opacity: 1;
+    }
+
+    .status-message.success {
+        background-color: var(--success-green);
+        box-shadow: 0 0 15px rgba(0, 200, 81, 0.5);
+    }
+
+    .status-message.error {
+        background-color: var(--error-red);
+        box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+    }
+
+    .status-message.warning {
+        background-color: var(--warning-yellow);
+        box-shadow: 0 0 15px rgba(255, 187, 51, 0.5);
+    }
+
+    .fade-in {
+        display: block;
+        opacity: 1;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+    }
+
+    @keyframes neonPulse {
+        0%, 100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        50% {
+            opacity: 0.7;
+            transform: translateY(-10px) scale(1.05);
+        }
+    }
+
+    @media (max-width: 480px) {
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-            margin: 0;
-            padding: 16px;
-            background-color: var(--dark-bg);
-            color: white;
-            min-height: 100vh;
-            overscroll-behavior: none;
-            position: relative;
+            padding: 8px;
         }
 
-        .app-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 0;
-            position: relative;
-            z-index: 1;
-        }
-
-        .canvas-wrapper {
-            position: relative;
-            width: 100%;
-            padding-top: 75%;
-            margin-bottom: 8px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 12px;
-            border: 2px solid var(--neon-blue);
-            box-shadow: 0 0 15px var(--neon-blue);
-            overflow: hidden;
-        }
-
-        .canvas-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-            background: #000;
-        }
-
-        #memeCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-            display: block;
-        }
-
-        .stogie-selector {
-            width: 100%;
-            margin: 8px 0;
-            display: flex;
-            gap: 10px;
+        .preview-content {
             padding: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--neon-pink);
-            border-radius: 12px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            box-shadow: 0 0 10px var(--neon-pink);
-            backdrop-filter: blur(5px);
-            scrollbar-width: none;
-            -ms-overflow-style: none;
         }
 
-        .stogie-selector::-webkit-scrollbar {
-            display: none;
-        }
-
-        .stogie-option {
-            flex: 0 0 80px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid var(--neon-purple);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            padding: 5px;
-            position: relative;
-        }
-
-        .stogie-option:active {
-            transform: scale(0.95);
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .stogie-option img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            pointer-events: none;
-        }
-
-        .control-panel {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 20px;
-            border-radius: 12px;
-            margin: 8px 0;
-            border: 1px solid var(--neon-green);
-            box-shadow: 0 0 10px var(--neon-green);
-            backdrop-filter: blur(5px);
-        }
-
-        .button {
-            background: var(--retrowave-gradient);
-            color: white;
-            border: none;
-            padding: 16px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            width: 100%;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            text-transform: uppercase;
-            font-weight: bold;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .button:active {
-            transform: scale(0.98);
-        }
-
-        .button::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(255,255,255,0.1), transparent);
-            pointer-events: none;
-        }
-
-        .delete-button {
-            background: linear-gradient(45deg, #ff0844, #ffb199);
-        }
-
-        .delete-button.disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        .slider-container {
-            margin: 16px 0;
-        }
-
-        .slider-container label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--neon-pink);
-            text-transform: uppercase;
-            font-size: 14px;
-            letter-spacing: 1px;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 36px;
-            -webkit-appearance: none;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            outline: none;
-            border: 1px solid var(--neon-blue);
-            margin: 0;
-            padding: 0;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 24px;
-            height: 24px;
-            background: var(--neon-purple);
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 10px var(--neon-purple);
-            border: none;
-            margin-top: -8px;
-        }
-
-        input[type="range"]::-webkit-slider-runnable-track {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            border: none;
-        }
-
-        #fileInput {
-            display: none;
-        }
-
-        .preview-modal, .mobile-redirect-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--modal-bg);
-            z-index: 1000;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            touch-action: none;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .mobile-redirect-modal {
-            z-index: 2000;
-        }
-
-        .preview-content, .modal-content {
-            max-width: 800px;
-            margin: 0 auto;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--neon-blue);
-            box-shadow: 0 0 20px var(--neon-blue);
-            position: relative;
-        }
-
-        .mobile-redirect-modal .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        .preview-content h2, .modal-content h2 {
-            margin: 0 0 20px 0;
-            text-align: center;
-            color: var(--neon-pink);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 20px;
-        }
-
-        .preview-image-container {
-            width: 100%;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #000;
-        }
-
-        .preview-image {
-            width: 100%;
-            display: block;
-            border-radius: 8px;
-        }
-
-        .modal-content p {
-            color: white;
-            margin-bottom: 20px;
-            line-height: 1.5;
-            font-size: 16px;
-        }
-
-        .share-options {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 10px;
-            margin-top: 20px;
+        .preview-content h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
         }
 
         .share-button {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--neon-purple);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .share-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .share-button:active {
-            transform: translateY(0);
-        }
-
-        .share-button.download {
-            border-color: var(--neon-green);
-        }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            backdrop-filter: blur(5px);
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--neon-blue);
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        .loading-text {
-            color: white;
-            font-size: 16px;
-            text-align: center;
-            max-width: 80%;
-            animation: pulse 1.5s infinite;
+            padding: 10px;
+            font-size: 12px;
         }
 
         .status-message {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 2001;
-            pointer-events: none;
-            max-width: 90%;
-            text-align: center;
-            backdrop-filter: blur(5px);
+            font-size: 14px;
+            padding: 10px 20px;
         }
 
-        .status-message.show {
-            opacity: 1;
+        .instruction-text {
+            margin-top: 80px;
+            font-size: 16px;
+            padding: 15px;
         }
 
-        .status-message.success {
-            background-color: var(--success-green);
-            box-shadow: 0 0 15px rgba(0, 200, 81, 0.5);
+        .got-it-btn {
+            padding: 12px 20px;
+            font-size: 14px;
         }
 
-        .status-message.error {
-            background-color: var(--error-red);
-            box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+        .custom-arrow {
+            right: 35px;
         }
 
-        .status-message.warning {
-            background-color: var(--warning-yellow);
-            box-shadow: 0 0 15px rgba(255, 187, 51, 0.5);
+        .custom-arrow svg {
+            width: 50px;
+            height: 50px;
         }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 8px;
-            }
-
-            .preview-content {
-                padding: 15px;
-            }
-
-            .preview-content h2 {
-                font-size: 18px;
-                margin-bottom: 15px;
-            }
-
-            .share-button {
-                padding: 10px;
-                font-size: 12px;
-            }
-
-            .status-message {
-                font-size: 14px;
-                padding: 10px 20px;
-            }
-        }
-    </style>
-    <script>
+    }
+</style>
+<script>
 // Security and Platform Utils
 const platformUtils = {
     isTelegram: Boolean(window.Telegram?.WebApp),
@@ -598,53 +690,6 @@ const platformUtils = {
         modal.style.display = 'block';
         modal.style.opacity = '1';
         modal.style.zIndex = '2000';
-        
-        const button = document.getElementById('openInBrowserButton');
-        if (button) {
-            button.onclick = () => {
-                try {
-                    const currentUrl = window.location.href;
-                    
-                    if (window.Telegram?.WebApp) {
-                        // Create a deep link using a custom scheme to force external browser
-                        const externalBrowserUrl = `browser://${encodeURIComponent(currentUrl)}`;
-                        
-                        // First try using the native URL scheme
-                        window.location.href = externalBrowserUrl;
-                        
-                        // Fallback: Try opening with specific browser schemes
-                        setTimeout(() => {
-                            // Try Chrome
-                            window.location.href = `googlechrome:${currentUrl}`;
-                            
-                            // Try Safari on iOS
-                            setTimeout(() => {
-                                window.location.href = `x-web-search://${currentUrl}`;
-                                
-                                // Final fallback: Try system URL scheme
-                                setTimeout(() => {
-                                    window.location.href = `intent:${currentUrl}#Intent;action=android.intent.action.VIEW;end`;
-                                }, 100);
-                            }, 100);
-                        }, 100);
-
-                        // Close the Telegram WebApp after attempting to open external browser
-                        setTimeout(() => {
-                            window.Telegram.WebApp.close();
-                        }, 500);
-                    } else {
-                        // Fallback for non-Telegram browsers
-                        window.open(currentUrl, '_system');
-                    }
-                } catch (error) {
-                    console.error('Error opening external browser:', error);
-                    // Final fallback
-                    window.location.href = currentUrl;
-                }
-            };
-        }
-
-        console.log('Mobile redirect modal displayed');
     },
 
     setupEnvironment: function() {
@@ -656,44 +701,7 @@ const platformUtils = {
     }
 };
 
-// Initialize on DOM load
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing platform utils');
-    platformUtils.init();
-});
-
-// Fallback initialization
-window.addEventListener('load', function() {
-    console.log('Window loaded, ensuring platform utils are initialized');
-    platformUtils.init();
-});
-// Enhanced security utilities
-const securityUtils = {
-    sanitizeInput: function(input) {
-        const div = document.createElement('div');
-        div.textContent = input;
-        return div.innerHTML;
-    },
-    
-    validateImage: function(file) {
-        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        if (!validTypes.includes(file.type)) {
-            throw new Error('Invalid file type. Please use JPG, PNG, or GIF images.');
-        }
-        if (file.size > 10 * 1024 * 1024) { // 10MB limit
-            throw new Error('File too large. Please use an image under 10MB.');
-        }
-        return true;
-    },
-    
-    createSecureObjectURL: function(file) {
-        const url = URL.createObjectURL(file);
-        setTimeout(() => URL.revokeObjectURL(url), 3600000); // Clean up after 1 hour
-        return url;
-    }
-};
-
-// Enhanced status handling
+// Status handling
 const statusHandler = {
     show: function(message, type = 'success', duration = 3000) {
         const statusEl = document.getElementById('statusMessage');
@@ -712,7 +720,7 @@ const statusHandler = {
     }
 };
 
-// Enhanced loading overlay handler
+// Loading overlay handler
 const loadingHandler = {
     show: function(message = 'Processing...') {
         const overlay = document.getElementById('loadingOverlay');
@@ -731,7 +739,7 @@ const loadingHandler = {
     }
 };
 
-// Enhanced error handler
+// Error handler
 const errorHandler = {
     handle: function(error, context = '') {
         console.error(`Error in ${context}:`, error);
@@ -739,18 +747,7 @@ const errorHandler = {
         const errorMessage = error.message || 'An error occurred. Please try again.';
         statusHandler.show(errorMessage, 'error');
         
-        if (platformUtils.isPC) {
-            console.debug('Detailed error info:', error);
-        }
-        
         loadingHandler.hide();
-    },
-
-    logError: function(error, context) {
-        console.error(`[${context}] Error:`, error);
-        if (error.stack) {
-            console.error('Stack trace:', error.stack);
-        }
     }
 };
 
@@ -764,43 +761,10 @@ let isDragging = false;
 let startX, startY;
 let canvasScale = 1;
 
-// Debug utilities
-const debugUtils = {
-    enabled: false,
-    
-    log: function(message, data = null) {
-        if (!this.enabled) return;
-        console.log(`[Debug] ${message}`, data || '');
-        this.updateDebugPanel();
-    },
-    
-    updateDebugPanel: function() {
-        if (!this.enabled) return;
-        const debugInfo = document.getElementById('debugInfo');
-        if (debugInfo) {
-            debugInfo.textContent = JSON.stringify({
-                platformInfo: {
-                    isTelegram: platformUtils.isTelegram,
-                    isMobile: platformUtils.isMobile
-                },
-                canvasInfo: {
-                    width: canvas.width,
-                    height: canvas.height,
-                    scale: canvasScale
-                },
-                overlaysCount: overlays.length,
-                activeOverlay: Boolean(activeOverlay)
-            }, null, 2);
-        }
-    }
-};
-</script>
-<script>
 // Canvas initialization and utilities
 const canvasUtils = {
     init: function() {
         try {
-            debugUtils.log('Initializing canvas');
             const container = canvas.parentElement;
             const dpr = window.devicePixelRatio || 1;
             const rect = container.getBoundingClientRect();
@@ -811,12 +775,6 @@ const canvasUtils = {
             canvas.height = rect.height * dpr;
             ctx.scale(dpr, dpr);
             canvasScale = dpr;
-            
-            debugUtils.log('Canvas initialized', {
-                width: canvas.width,
-                height: canvas.height,
-                dpr: dpr
-            });
             
             this.draw();
         } catch (error) {
@@ -843,10 +801,6 @@ const canvasUtils = {
             // Draw overlays
             overlays.forEach(overlay => this.drawOverlay(overlay));
             
-            debugUtils.log('Canvas redrawn', {
-                overlaysCount: overlays.length,
-                hasBaseImage: Boolean(baseImage.src)
-            });
         } catch (error) {
             errorHandler.handle(error, 'canvas drawing');
         }
@@ -870,7 +824,6 @@ const canvasUtils = {
         }
 
         ctx.drawImage(baseImage, x, y, drawWidth, drawHeight);
-        debugUtils.log('Base image drawn', { width: drawWidth, height: drawHeight });
     },
 
     drawOverlay: function(overlay) {
@@ -908,23 +861,16 @@ const canvasUtils = {
     }
 };
 
-// Enhanced image processing utilities
+// Image processing utilities
 const imageUtils = {
     processImage: async function(file) {
         try {
-            debugUtils.log('Processing new image');
-            securityUtils.validateImage(file);
-            
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 
                 reader.onload = () => {
                     baseImage.src = reader.result;
                     baseImage.onload = () => {
-                        debugUtils.log('Image loaded successfully', {
-                            width: baseImage.width,
-                            height: baseImage.height
-                        });
                         resolve();
                     };
                     baseImage.onerror = () => reject(new Error('Failed to load image'));
@@ -940,10 +886,7 @@ const imageUtils = {
     },
 
     compressImage: async function(file, maxSize = 5 * 1024 * 1024) {
-        debugUtils.log('Starting image compression', { originalSize: file.size });
-        
         if (file.size <= maxSize) {
-            debugUtils.log('No compression needed');
             return file;
         }
 
@@ -982,25 +925,17 @@ const imageUtils = {
 
             URL.revokeObjectURL(img.src);
             
-            debugUtils.log('Compression complete', {
-                originalSize: file.size,
-                compressedSize: outputBlob.size
-            });
-            
             return new File([outputBlob], 'compressed-meme.jpg', { type: 'image/jpeg' });
         } catch (error) {
-            errorHandler.logError(error, 'image compression');
-            debugUtils.log('Compression failed, returning original file');
+            errorHandler.handle(error, 'image compression');
             return file;
         }
     }
 };
-</script>
-<script>
-// Enhanced sharing functionality
+
+// Sharing utilities
 const sharingUtils = {
     async generateHighResCanvas() {
-        debugUtils.log('Generating high-res canvas');
         const exportCanvas = document.createElement('canvas');
         const exportCtx = exportCanvas.getContext('2d');
         const scale = 2;
@@ -1019,11 +954,6 @@ const sharingUtils = {
 
             overlays.forEach(overlay => {
                 this.drawOverlayToCanvas(exportCtx, overlay, canvasScale);
-            });
-
-            debugUtils.log('High-res canvas generated', {
-                width: exportCanvas.width,
-                height: exportCanvas.height
             });
 
             return exportCanvas;
@@ -1093,7 +1023,7 @@ const sharingUtils = {
     }
 };
 
-// Sharing functions
+// Event Handlers and Functions
 async function downloadImage() {
     loadingHandler.show('Preparing download...');
     
@@ -1154,7 +1084,6 @@ async function shareToSocial() {
             });
             statusHandler.show('Shared successfully!', 'success');
         } else {
-            // Fallback to download if sharing is not supported
             downloadImage();
         }
     } catch (error) {
@@ -1166,7 +1095,30 @@ async function shareToSocial() {
     }
 }
 
-// Event Handlers
+// Instruction overlay functions
+function showInstructions() {
+    const overlay = document.getElementById('instructionOverlay');
+    overlay.classList.add('fade-in');
+}
+
+function showStep2() {
+    const step1 = document.querySelector('.step-1');
+    const step2 = document.querySelector('.step-2');
+    
+    step1.style.display = 'none';
+    step2.style.display = 'block';
+}
+
+function closeInstructions() {
+    const overlay = document.getElementById('instructionOverlay');
+    overlay.classList.remove('fade-in');
+    
+    setTimeout(() => {
+        overlay.style.display = 'none';
+    }, 300);
+}
+
+// Event Listeners
 document.getElementById('fileInput').addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (file) {
@@ -1183,24 +1135,11 @@ document.getElementById('fileInput').addEventListener('change', async function(e
     }
 });
 
-// Initialize everything when the window loads
-window.addEventListener('load', function() {
-    debugUtils.log('Window loaded, initializing app');
-    platformUtils.init();
-    canvasUtils.init();
-});
-</script>
-<script>
 // Stogie selector handlers
 document.querySelectorAll('.stogie-option').forEach(option => {
     option.addEventListener('click', () => {
         const img = option.querySelector('img');
         if (img) {
-            debugUtils.log('Stogie option clicked', {
-                src: img.dataset.src,
-                type: option.dataset.type
-            });
-
             const overlayImg = new Image();
             overlayImg.crossOrigin = "Anonymous";
             overlayImg.src = img.dataset.src;
@@ -1224,14 +1163,6 @@ document.querySelectorAll('.stogie-option').forEach(option => {
                 document.getElementById('scaleSlider').value = 37.5;
                 updateDeleteButtonState();
                 canvasUtils.draw();
-                
-                debugUtils.log('Overlay added', {
-                    totalOverlays: overlays.length,
-                    overlayDimensions: {
-                        width: overlayImg.width,
-                        height: overlayImg.height
-                    }
-                });
             };
 
             overlayImg.onerror = () => {
@@ -1265,11 +1196,6 @@ function handleTouchStart(e) {
         
         document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
         document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
-        
-        debugUtils.log('Touch started on overlay', {
-            position: { x: pos.x, y: pos.y },
-            overlayType: clickedOverlay.type
-        });
     }
 }
 
@@ -1287,14 +1213,6 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd() {
-    if (isDragging) {
-        debugUtils.log('Touch ended', {
-            finalPosition: activeOverlay ? {
-                x: activeOverlay.x,
-                y: activeOverlay.y
-            } : null
-        });
-    }
     isDragging = false;
 }
 
@@ -1320,11 +1238,6 @@ function handleMouseDown(e) {
         
         document.getElementById('rotationSlider').value = clickedOverlay.rotation + 180;
         document.getElementById('scaleSlider').value = clickedOverlay.scale * 100;
-        
-        debugUtils.log('Mouse down on overlay', {
-            position: { x: pos.x, y: pos.y },
-            overlayType: clickedOverlay.type
-        });
     }
 }
 
@@ -1339,14 +1252,6 @@ function handleMouseMove(e) {
 }
 
 function handleMouseUp() {
-    if (isDragging) {
-        debugUtils.log('Mouse up', {
-            finalPosition: activeOverlay ? {
-                x: activeOverlay.x,
-                y: activeOverlay.y
-            } : null
-        });
-    }
     isDragging = false;
 }
 
@@ -1386,10 +1291,6 @@ document.getElementById('rotationSlider').addEventListener('input', e => {
         const sliderValue = parseInt(e.target.value);
         activeOverlay.rotation = sliderValue - 180;
         canvasUtils.draw();
-        
-        debugUtils.log('Rotation updated', {
-            newRotation: activeOverlay.rotation
-        });
     }
 });
 
@@ -1398,21 +1299,12 @@ document.getElementById('scaleSlider').addEventListener('input', e => {
         const scaleValue = parseInt(e.target.value);
         activeOverlay.scale = scaleValue / 100;
         canvasUtils.draw();
-        
-        debugUtils.log('Scale updated', {
-            newScale: activeOverlay.scale
-        });
     }
 });
 
 // Delete button handler
 document.getElementById('deleteButton').addEventListener('click', () => {
     if (activeOverlay) {
-        debugUtils.log('Deleting overlay', {
-            type: activeOverlay.type,
-            position: { x: activeOverlay.x, y: activeOverlay.y }
-        });
-
         overlays = overlays.filter(overlay => overlay !== activeOverlay);
         activeOverlay = null;
         updateDeleteButtonState();
@@ -1430,11 +1322,13 @@ document.getElementById('previewButton').addEventListener('click', async () => {
     loadingHandler.show('Generating preview...');
     
     try {
-        debugUtils.log('Generating preview');
         const exportCanvas = await sharingUtils.generateHighResCanvas();
         const previewImage = document.getElementById('previewImage');
         previewImage.src = exportCanvas.toDataURL('image/png');
         document.getElementById('previewModal').style.display = 'flex';
+        
+        // Show instructions after preview is displayed
+        setTimeout(showInstructions, 500);
     } catch (error) {
         errorHandler.handle(error, 'generating preview');
     } finally {
@@ -1445,13 +1339,6 @@ document.getElementById('previewButton').addEventListener('click', async () => {
 function updateDeleteButtonState() {
     const deleteButton = document.getElementById('deleteButton');
     deleteButton.classList.toggle('disabled', !activeOverlay);
-    debugUtils.log('Delete button state updated', {
-        isEnabled: Boolean(activeOverlay)
-    });
-}
-
-function closePreview() {
-    document.getElementById('previewModal').style.display = 'none';
 }
 
 // Window event handlers
@@ -1459,30 +1346,14 @@ let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
-        debugUtils.log('Window resized');
         canvasUtils.init();
     }, 250);
 });
 
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    if (activeOverlay) {
-        switch(e.key) {
-            case 'Delete':
-            case 'Backspace':
-                document.getElementById('deleteButton').click();
-                break;
-            case 'Escape':
-                activeOverlay = null;
-                updateDeleteButtonState();
-                canvasUtils.draw();
-                break;
-        }
-    }
-    
-    if (e.key === 'Escape' && document.getElementById('previewModal').style.display === 'flex') {
-        closePreview();
-    }
+// Initialize everything when the window loads
+window.addEventListener('load', function() {
+    platformUtils.init();
+    canvasUtils.init();
 });
 </script>
 </body>
