@@ -69,6 +69,9 @@
     <!-- Enhanced Preview Modal -->
     <div class="preview-modal" id="previewModal">
         <div class="preview-content">
+            <button class="close-button" onclick="closePreview()">
+                <i class="fas fa-times"></i>
+            </button>
             <h2>Preview & Share</h2>
             <div class="preview-image-container">
                 <img id="previewImage" class="preview-image" alt="Preview">
@@ -94,7 +97,17 @@
             <div class="step-1">
                 <div class="custom-arrow">
                     <svg viewBox="0 0 50 50">
-                        <path d="M10 40 L40 10 M30 10 L40 10 L40 20" />
+                        <!-- Updated arrow path for smooth curve -->
+                        <path d="
+                            M15 35 
+                            Q25 25 35 15
+                            M25 15
+                            L35 15
+                            L35 25
+                        "/>
+                        <!-- Added decorative dots -->
+                        <circle cx="15" cy="35" r="2" class="arrow-dot" />
+                        <circle cx="35" cy="15" r="2" class="arrow-dot" />
                     </svg>
                 </div>
                 <div class="instruction-text">
@@ -374,6 +387,34 @@
         -webkit-overflow-scrolling: touch;
     }
 
+    /* Close button styles */
+    .close-button {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: var(--retrowave-gradient);
+        border: none;
+        color: white;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        z-index: 10;
+    }
+
+    .close-button:active {
+        transform: scale(0.95);
+    }
+
+    .close-button:hover {
+        box-shadow: 0 0 15px rgba(255, 113, 206, 0.5);
+    }
+
     .instruction-overlay {
         z-index: 10000;
         opacity: 0;
@@ -402,14 +443,17 @@
 
     .preview-image-container {
         width: 100%;
-        margin-bottom: 20px;
+        margin: 20px auto;
+        max-width: 500px;
+        background: #000;
         border-radius: 8px;
         overflow: hidden;
-        background: #000;
+        box-shadow: 0 0 20px rgba(1, 205, 254, 0.3);
     }
 
     .preview-image {
         width: 100%;
+        height: auto;
         display: block;
         border-radius: 8px;
     }
@@ -452,11 +496,14 @@
         border-color: var(--neon-green);
     }
 
+    /* Updated arrow styles */
     .custom-arrow {
         position: absolute;
         top: 15px;
         right: 45px;
         animation: neonPulse 1.5s infinite;
+        transform: rotate(45deg);
+        filter: drop-shadow(0 0 8px var(--neon-pink));
     }
 
     .custom-arrow svg {
@@ -468,9 +515,17 @@
         fill: none;
         stroke: var(--neon-pink);
         stroke-width: 3;
-        filter: drop-shadow(0 0 8px var(--neon-pink));
-        transform-origin: center;
-        transform: rotate(45deg);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: drawArrow 2s forwards, neonFlicker 1.5s infinite alternate;
+    }
+
+    .custom-arrow .arrow-dot {
+        fill: var(--neon-pink);
+        opacity: 0;
+        animation: fadeIn 0.5s 1.5s forwards, neonFlicker 1.5s infinite alternate;
     }
 
     .instruction-text {
@@ -609,6 +664,7 @@
         opacity: 1;
     }
 
+    /* Animation keyframes */
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
@@ -622,11 +678,33 @@
     @keyframes neonPulse {
         0%, 100% {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: rotate(45deg) translateY(0) scale(1);
         }
         50% {
             opacity: 0.7;
-            transform: translateY(-10px) scale(1.05);
+            transform: rotate(45deg) translateY(-10px) scale(1.05);
+        }
+    }
+
+    @keyframes drawArrow {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @keyframes fadeIn {
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes neonFlicker {
+        0%, 100% {
+            filter: drop-shadow(0 0 8px var(--neon-pink));
+        }
+        50% {
+            filter: drop-shadow(0 0 12px var(--neon-pink)) 
+                   drop-shadow(0 0 20px var(--neon-pink));
         }
     }
 
@@ -672,6 +750,12 @@
         .custom-arrow svg {
             width: 50px;
             height: 50px;
+        }
+
+        .close-button {
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
         }
     }
 </style>
@@ -870,14 +954,68 @@ const canvasUtils = {
     },
 
     drawOverlayBorder: function(overlay) {
+        // Save the current canvas state
+        ctx.save();
+        
+        // Create a vibrant border effect
         ctx.strokeStyle = 'var(--neon-pink)';
         ctx.lineWidth = 2 / overlay.scale;
+        ctx.shadowColor = 'var(--neon-pink)';
+        ctx.shadowBlur = 10;
+        ctx.setLineDash([8 / overlay.scale, 4 / overlay.scale]); // Create a dashed line effect
+        
+        // Draw the main border
         ctx.strokeRect(
             -overlay.image.width / 2,
             -overlay.image.height / 2,
             overlay.image.width,
             overlay.image.height
         );
+
+        // Add corner accents
+        const cornerSize = 10 / overlay.scale;
+        const halfWidth = overlay.image.width / 2;
+        const halfHeight = overlay.image.height / 2;
+
+        // Reset line dash for corners
+        ctx.setLineDash([]);
+        ctx.lineWidth = 3 / overlay.scale;
+        
+        // Define corner colors
+        const colors = [
+            'var(--neon-pink)',    // Top left
+            'var(--neon-purple)',  // Top right
+            'var(--neon-blue)',    // Bottom right
+            'var(--neon-green)'    // Bottom left
+        ];
+
+        // Draw corners
+        this.drawCorner(-halfWidth, -halfHeight, cornerSize, 0, colors[0]);    // Top left
+        this.drawCorner(halfWidth, -halfHeight, cornerSize, 90, colors[1]);    // Top right
+        this.drawCorner(halfWidth, halfHeight, cornerSize, 180, colors[2]);    // Bottom right
+        this.drawCorner(-halfWidth, halfHeight, cornerSize, 270, colors[3]);   // Bottom left
+
+        // Restore the canvas state
+        ctx.restore();
+    },
+
+    drawCorner: function(x, y, size, rotation, color) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate((rotation * Math.PI) / 180);
+        
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
+        
+        // Draw the corner L shape
+        ctx.beginPath();
+        ctx.moveTo(0, size);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(size, 0);
+        ctx.stroke();
+        
+        ctx.restore();
     }
 };
 // Image processing utilities
@@ -952,72 +1090,66 @@ const imageUtils = {
     }
 };
 
-// Sharing utilities
+// Sharing utilities with updated cropping functionality
 const sharingUtils = {
     async generateHighResCanvas() {
-        const exportCanvas = document.createElement('canvas');
-        const exportCtx = exportCanvas.getContext('2d');
-        const scale = 2;
-
-        exportCanvas.width = canvas.width * scale;
-        exportCanvas.height = canvas.height * scale;
-
         try {
-            exportCtx.scale(scale * canvasScale, scale * canvasScale);
-            
-            if (baseImage.src) {
-                const dimensions = this.calculateImageDimensions();
-                exportCtx.drawImage(baseImage, dimensions.x, dimensions.y, 
-                                 dimensions.width, dimensions.height);
+            // Create canvas with original image dimensions
+            const exportCanvas = document.createElement('canvas');
+            const exportCtx = exportCanvas.getContext('2d');
+
+            if (!baseImage.src) {
+                throw new Error('No image loaded');
             }
 
+            // Set canvas size to match original image dimensions
+            exportCanvas.width = baseImage.width;
+            exportCanvas.height = baseImage.height;
+
+            // Draw the base image at full size
+            exportCtx.drawImage(baseImage, 0, 0, baseImage.width, baseImage.height);
+
+            // Calculate scale factor for overlays
+            const canvasAspect = canvas.width / canvas.height;
+            const imageAspect = baseImage.width / baseImage.height;
+            let scale, offsetX, offsetY;
+
+            if (canvasAspect > imageAspect) {
+                // Canvas is wider than image
+                scale = baseImage.height / (canvas.height / canvasScale);
+                offsetX = (canvas.width / canvasScale - (baseImage.width / scale)) / 2;
+                offsetY = 0;
+            } else {
+                // Canvas is taller than image
+                scale = baseImage.width / (canvas.width / canvasScale);
+                offsetX = 0;
+                offsetY = (canvas.height / canvasScale - (baseImage.height / scale)) / 2;
+            }
+
+            // Draw overlays with adjusted positioning
             overlays.forEach(overlay => {
-                this.drawOverlayToCanvas(exportCtx, overlay, canvasScale);
+                const adjustedX = (overlay.x / canvasScale - offsetX) * scale;
+                const adjustedY = (overlay.y / canvasScale - offsetY) * scale;
+                
+                exportCtx.save();
+                exportCtx.translate(adjustedX, adjustedY);
+                exportCtx.rotate(overlay.rotation * Math.PI / 180);
+                exportCtx.scale(overlay.scale * scale, overlay.scale * scale);
+                
+                exportCtx.drawImage(
+                    overlay.image,
+                    -overlay.image.width / 2,
+                    -overlay.image.height / 2
+                );
+                
+                exportCtx.restore();
             });
 
             return exportCanvas;
         } catch (error) {
             errorHandler.handle(error, 'generating high-res canvas');
-            throw new Error('Failed to generate image');
+            throw error;
         }
-    },
-
-    calculateImageDimensions() {
-        const imgRatio = baseImage.width / baseImage.height;
-        const canvasRatio = canvas.width / canvas.height;
-        let width, height, x, y;
-
-        if (imgRatio > canvasRatio) {
-            width = canvas.width / canvasScale;
-            height = (canvas.width / canvasScale) / imgRatio;
-            x = 0;
-            y = (canvas.height / canvasScale - height) / 2;
-        } else {
-            height = canvas.height / canvasScale;
-            width = (canvas.height / canvasScale) * imgRatio;
-            x = (canvas.width / canvasScale - width) / 2;
-            y = 0;
-        }
-
-        return { width, height, x, y };
-    },
-
-    drawOverlayToCanvas(ctx, overlay, scale) {
-        ctx.save();
-        const x = overlay.x / scale;
-        const y = overlay.y / scale;
-        
-        ctx.translate(x, y);
-        ctx.rotate(overlay.rotation * Math.PI / 180);
-        ctx.scale(overlay.scale, overlay.scale);
-        
-        ctx.drawImage(
-            overlay.image,
-            -overlay.image.width / 2,
-            -overlay.image.height / 2
-        );
-        
-        ctx.restore();
     },
 
     async convertCanvasToFile(canvas) {
@@ -1042,7 +1174,7 @@ const sharingUtils = {
     }
 };
 
-// Event Handlers and Functions
+// Updated sharing functions
 async function downloadImage() {
     loadingHandler.show('Preparing download...');
     
@@ -1112,6 +1244,11 @@ async function shareToSocial() {
     } finally {
         loadingHandler.hide();
     }
+}
+
+// Add close preview function
+function closePreview() {
+    document.getElementById('previewModal').style.display = 'none';
 }
 // Instruction overlay functions
 function showInstructions() {
@@ -1360,6 +1497,13 @@ function updateDeleteButtonState() {
     const deleteButton = document.getElementById('deleteButton');
     deleteButton.classList.toggle('disabled', !activeOverlay);
 }
+
+// Add escape key handler for closing preview
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closePreview();
+    }
+});
 
 // Window event handlers
 let resizeTimeout;
