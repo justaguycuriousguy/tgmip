@@ -17,6 +17,98 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
+<body data-platform="mobile">
+    <div class="app-container">
+        <div class="canvas-wrapper">
+            <div class="canvas-container">
+                <canvas id="memeCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="stogie-selector" id="stogieSelector">
+            <!-- Enhanced stogie options with data attributes -->
+            <div class="stogie-option" data-type="stogie">
+                <img src="images/stogie.png" alt="Stogie 1" data-src="images/stogie.png">
+            </div>
+            <div class="stogie-option" data-type="stogie">
+                <img src="images/stogie2.png" alt="Stogie 2" data-src="images/stogie2.png">
+            </div>
+            <div class="stogie-option" data-type="stogie">
+                <img src="images/stogie3.png" alt="Stogie 3" data-src="images/stogie3.png">
+            </div>
+            <div class="stogie-option" data-type="accessory">
+                <img src="images/glasses.png" alt="Glasses" data-src="images/glasses.png">
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="button" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-image"></i> Choose Image
+            </button>
+            
+            <div class="slider-container">
+                <label>Rotation</label>
+                <input type="range" id="rotationSlider" min="0" max="360" value="180">
+            </div>
+            
+            <div class="slider-container">
+                <label>Size</label>
+                <input type="range" id="scaleSlider" min="5" max="75" value="37.5">
+            </div>
+
+            <button class="button delete-button disabled" id="deleteButton">
+                <i class="fas fa-trash"></i> Delete Selected
+            </button>
+
+            <button class="button" id="previewButton">
+                <i class="fas fa-eye"></i> Preview & Share
+            </button>
+        </div>
+    </div>
+
+    <!-- Enhanced Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-content">
+            <h2>Preview & Share</h2>
+            <div class="preview-image-container">
+                <img id="previewImage" class="preview-image" alt="Preview">
+            </div>
+            
+            <div class="share-options">
+                <button class="share-button download" onclick="downloadImage()" data-action="download">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="share-button" onclick="copyToClipboard()" data-action="copy">
+                    <i class="fas fa-copy"></i> Copy to Clipboard
+                </button>
+                <button class="share-button" onclick="shareToSocial()" data-action="social">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Redirect Modal -->
+    <div class="mobile-redirect-modal" id="mobileRedirectModal">
+        <div class="modal-content">
+            <h2>Better Experience Available!</h2>
+            <p>For full access to all features including downloading and sharing, please open this app in your mobile browser.</p>
+            <button class="button" id="openInBrowserButton">
+                <i class="fas fa-external-link-alt"></i> Open in Browser
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Processing your meme...</div>
+    </div>
+
+    <!-- Status Messages Container -->
+    <div class="status-message" id="statusMessage"></div>
+
 <style>
         :root {
             --neon-pink: #ff71ce;
@@ -468,112 +560,6 @@
             }
         }
     </style>
-    <body data-platform="mobile">
-    <div class="app-container">
-        <div class="canvas-wrapper">
-            <div class="canvas-container">
-                <canvas id="memeCanvas"></canvas>
-            </div>
-        </div>
-
-        <div class="stogie-selector" id="stogieSelector">
-            <!-- Enhanced stogie options with data attributes -->
-            <div class="stogie-option" data-type="stogie">
-                <img src="images/stogie.png" alt="Stogie 1" data-src="images/stogie.png">
-            </div>
-            <div class="stogie-option" data-type="stogie">
-                <img src="images/stogie2.png" alt="Stogie 2" data-src="images/stogie2.png">
-            </div>
-            <div class="stogie-option" data-type="stogie">
-                <img src="images/stogie3.png" alt="Stogie 3" data-src="images/stogie3.png">
-            </div>
-            <div class="stogie-option" data-type="accessory">
-                <img src="images/glasses.png" alt="Glasses" data-src="images/glasses.png">
-            </div>
-        </div>
-
-        <div class="control-panel">
-            <input type="file" id="fileInput" accept="image/*">
-            <button class="button" onclick="document.getElementById('fileInput').click()">
-                <i class="fas fa-image"></i> Choose Image
-            </button>
-            
-            <div class="slider-container">
-                <label>Rotation</label>
-                <input type="range" id="rotationSlider" min="0" max="360" value="180">
-            </div>
-            
-            <div class="slider-container">
-                <label>Size</label>
-                <input type="range" id="scaleSlider" min="5" max="75" value="37.5">
-            </div>
-
-            <button class="button delete-button disabled" id="deleteButton">
-                <i class="fas fa-trash"></i> Delete Selected
-            </button>
-
-            <button class="button" id="previewButton">
-                <i class="fas fa-eye"></i> Preview & Share
-            </button>
-        </div>
-    </div>
-
-    <!-- Enhanced Preview Modal -->
-    <div class="preview-modal" id="previewModal">
-        <div class="preview-content">
-            <h2>Preview & Share</h2>
-            <div class="preview-image-container">
-                <img id="previewImage" class="preview-image" alt="Preview">
-            </div>
-            
-            <div class="share-options">
-                <button class="share-button download" onclick="downloadImage()" data-action="download">
-                    <i class="fas fa-download"></i> Download
-                </button>
-                <button class="share-button" onclick="copyToClipboard()" data-action="copy">
-                    <i class="fas fa-copy"></i> Copy to Clipboard
-                </button>
-                <button class="share-button" onclick="shareToSocial()" data-action="social">
-                    <i class="fas fa-share-alt"></i> Share
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mobile Redirect Modal -->
-    <div class="mobile-redirect-modal" id="mobileRedirectModal">
-        <div class="modal-content">
-            <h2>Better Experience Available!</h2>
-            <p>For full access to all features including downloading and sharing, please open this app in your mobile browser.</p>
-            <button class="button" id="openInBrowserButton">
-                <i class="fas fa-external-link-alt"></i> Open in Browser
-            </button>
-        </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Processing your meme...</div>
-    </div>
-
-    <!-- Status Messages Container -->
-    <div class="status-message" id="statusMessage"></div>
-
-    <!-- Debug Panel (hidden in production) -->
-    <div id="debugPanel" style="display: none;">
-        <div class="debug-content">
-            <h3>Debug Information</h3>
-            <pre id="debugInfo"></pre>
-        </div>
-    </div>
-
-    <!-- Platform Detection Notice -->
-    <div id="platformNotice" style="display: none;">
-        <div class="platform-notice-content">
-            <p id="platformMessage"></p>
-        </div>
-    </div>
     <script>
 // Security and Platform Utils
 const platformUtils = {
@@ -581,19 +567,22 @@ const platformUtils = {
     isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
     
     init: function() {
+        // Add console logs for debugging
+        console.log('Platform detection:', {
+            isTelegram: this.isTelegram,
+            isMobile: this.isMobile
+        });
+
+        // Set platform attribute on body
         document.body.setAttribute('data-platform', this.isMobile ? 'mobile' : 'pc');
         
-        // Check if we're in Telegram mobile and need to show redirect
+        // Show mobile redirect if in Telegram mobile
         if (this.isTelegram && this.isMobile) {
+            console.log('Showing mobile redirect');
             this.showMobileRedirectPrompt();
         } else {
             this.setupEnvironment();
         }
-        
-        console.log('Platform initialized:', {
-            isTelegram: this.isTelegram,
-            isMobile: this.isMobile
-        });
     },
 
     setupEnvironment: function() {
@@ -606,18 +595,21 @@ const platformUtils = {
 
     showMobileRedirectPrompt: function() {
         const modal = document.getElementById('mobileRedirectModal');
+        if (!modal) {
+            console.error('Mobile redirect modal not found');
+            return;
+        }
         modal.style.display = 'block';
         
-        document.getElementById('openInBrowserButton').onclick = () => {
-            // Get current URL and remove any Telegram-specific parameters
-            const cleanUrl = window.location.href.split('?')[0];
-            // Open in new tab/window
-            window.open(cleanUrl, '_blank');
-        };
-    },
-
-    confirmTelegramWebApp: function() {
-        return Boolean(window.Telegram?.WebApp?.initData);
+        const button = document.getElementById('openInBrowserButton');
+        if (button) {
+            button.onclick = () => {
+                // Get current URL without query parameters
+                const cleanUrl = window.location.origin + window.location.pathname;
+                // Open in new tab
+                window.open(cleanUrl, '_blank');
+            };
+        }
     }
 };
 
@@ -735,8 +727,7 @@ const debugUtils = {
             debugInfo.textContent = JSON.stringify({
                 platformInfo: {
                     isTelegram: platformUtils.isTelegram,
-                    isMobile: platformUtils.isMobile,
-                    webAppInitialized: Boolean(window.Telegram?.WebApp?.initData)
+                    isMobile: platformUtils.isMobile
                 },
                 canvasInfo: {
                     width: canvas.width,
@@ -948,20 +939,6 @@ const imageUtils = {
             debugUtils.log('Compression failed, returning original file');
             return file;
         }
-    },
-
-    convertToBase64: function(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                debugUtils.log('Converted to base64', {
-                    size: reader.result.length
-                });
-                resolve(reader.result.split(',')[1]);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
     }
 };
 </script>
@@ -1040,21 +1017,6 @@ const sharingUtils = {
         ctx.restore();
     },
 
-    async prepareImageForExport() {
-        try {
-            const exportCanvas = await this.generateHighResCanvas();
-            const imageFile = await this.convertCanvasToFile(exportCanvas);
-            const compressedImage = await imageUtils.compressImage(imageFile);
-            
-            return {
-                file: compressedImage
-            };
-        } catch (error) {
-            errorHandler.handle(error, 'preparing image for export');
-            throw error;
-        }
-    },
-
     async convertCanvasToFile(canvas) {
         try {
             return new Promise((resolve, reject) => {
@@ -1077,6 +1039,7 @@ const sharingUtils = {
     }
 };
 
+// Sharing functions
 async function downloadImage() {
     loadingHandler.show('Preparing download...');
     
@@ -1164,6 +1127,64 @@ document.getElementById('fileInput').addEventListener('change', async function(e
             loadingHandler.hide();
         }
     }
+});
+
+// Initialize everything when the window loads
+window.addEventListener('load', function() {
+    debugUtils.log('Window loaded, initializing app');
+    platformUtils.init();
+    canvasUtils.init();
+});
+</script>
+<script>
+// Stogie selector handlers
+document.querySelectorAll('.stogie-option').forEach(option => {
+    option.addEventListener('click', () => {
+        const img = option.querySelector('img');
+        if (img) {
+            debugUtils.log('Stogie option clicked', {
+                src: img.dataset.src,
+                type: option.dataset.type
+            });
+
+            const overlayImg = new Image();
+            overlayImg.crossOrigin = "Anonymous";
+            overlayImg.src = img.dataset.src;
+            
+            overlayImg.onload = () => {
+                const dpr = window.devicePixelRatio || 1;
+                const overlay = {
+                    image: overlayImg,
+                    x: (canvas.width / dpr) / 2,
+                    y: (canvas.height / dpr) / 2,
+                    rotation: 0,
+                    scale: 0.2,
+                    initialWidth: overlayImg.width,
+                    initialHeight: overlayImg.height,
+                    type: option.dataset.type
+                };
+                
+                overlays.push(overlay);
+                activeOverlay = overlay;
+                document.getElementById('rotationSlider').value = 180;
+                document.getElementById('scaleSlider').value = 37.5;
+                updateDeleteButtonState();
+                canvasUtils.draw();
+                
+                debugUtils.log('Overlay added', {
+                    totalOverlays: overlays.length,
+                    overlayDimensions: {
+                        width: overlayImg.width,
+                        height: overlayImg.height
+                    }
+                });
+            };
+
+            overlayImg.onerror = () => {
+                errorHandler.handle(new Error('Failed to load overlay image'), 'loading overlay');
+            };
+        }
+    });
 });
 
 // Touch event handlers
@@ -1389,11 +1410,25 @@ window.addEventListener('resize', () => {
     }, 250);
 });
 
-// Initialize everything when the window loads
-window.addEventListener('load', function() {
-    debugUtils.log('Window loaded, initializing app');
-    platformUtils.init();
-    canvasUtils.init();
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (activeOverlay) {
+        switch(e.key) {
+            case 'Delete':
+            case 'Backspace':
+                document.getElementById('deleteButton').click();
+                break;
+            case 'Escape':
+                activeOverlay = null;
+                updateDeleteButtonState();
+                canvasUtils.draw();
+                break;
+        }
+    }
+    
+    if (e.key === 'Escape' && document.getElementById('previewModal').style.display === 'flex') {
+        closePreview();
+    }
 });
 </script>
 </body>
