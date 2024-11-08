@@ -562,7 +562,6 @@
     </style>
     <script>
 // Security and Platform Utils
-// Security and Platform Utils
 const platformUtils = {
     isTelegram: Boolean(window.Telegram?.WebApp),
     isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
@@ -606,25 +605,14 @@ const platformUtils = {
                 try {
                     const currentUrl = window.location.href;
                     
-                    // Force external browser opening
                     if (window.Telegram?.WebApp) {
-                        // Method 1: Using custom URL scheme
-                        const externalUrl = `external:${currentUrl}`;
-                        window.Telegram.WebApp.openLink(externalUrl, {
+                        // Use Telegram's openLink method with force_external_browser option
+                        window.Telegram.WebApp.openLink(currentUrl, {
                             try_instant_view: false,
                             force_external_browser: true
                         });
                         
-                        // Method 2: Fallback using timeout and direct link
-                        setTimeout(() => {
-                            const a = document.createElement('a');
-                            a.href = currentUrl;
-                            a.target = '_system'; // Forces system browser on some devices
-                            a.rel = 'noopener noreferrer';
-                            a.click();
-                        }, 100);
-                        
-                        // Optional: Close WebApp after redirect
+                        // Optional: Close the WebApp after opening link
                         setTimeout(() => {
                             window.Telegram.WebApp.close();
                         }, 500);
