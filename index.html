@@ -94,12 +94,13 @@
             <div class="step-1">
                 <div class="custom-arrow">
                     <svg viewBox="0 0 50 50">
-                        <path d="M10 25 L40 25 M30 15 L40 25 L30 35" />
+                        <path d="M10 40 L40 10 M30 10 L40 10 L40 20" />
                     </svg>
                 </div>
                 <div class="instruction-text">
                     To enable downloading, copying and sharing, tap the three dots (⋮) in the top right corner! ✨
-                    <button class="got-it-btn" onclick="showStep2()">Got it!</button>
+                    <button class="got-it-btn" onclick="showStep2()">Got it! 👍</button>
+                    <button class="skip-btn" onclick="skipInstructions()">I've already done this ✅</button>
                 </div>
             </div>
             
@@ -461,7 +462,6 @@
     .custom-arrow svg {
         width: 60px;
         height: 60px;
-        transform: rotate(-90deg);
     }
 
     .custom-arrow path {
@@ -469,6 +469,8 @@
         stroke: var(--neon-pink);
         stroke-width: 3;
         filter: drop-shadow(0 0 8px var(--neon-pink));
+        transform-origin: center;
+        transform: rotate(45deg);
     }
 
     .instruction-text {
@@ -501,6 +503,27 @@
         letter-spacing: 1px;
         text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
         width: 100%;
+    }
+
+    .skip-btn {
+        margin-top: 10px;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 2px solid var(--neon-blue);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        width: 100%;
+    }
+
+    .skip-btn:active {
+        transform: scale(0.95);
+        background: rgba(255, 255, 255, 0.2);
     }
 
     .got-it-btn:active {
@@ -668,9 +691,13 @@ const platformUtils = {
 
         document.body.setAttribute('data-platform', this.isMobile ? 'mobile' : 'pc');
         
+        // Show instructions only if on mobile and in Telegram WebView
         if (this.isMobile && this.isInTelegramWebView()) {
-            console.log('Telegram mobile WebView detected, showing redirect');
-            this.showMobileRedirectPrompt();
+            // Check if user has already completed the instruction
+            const hasCompletedInstruction = localStorage.getItem('instructionComplete');
+            if (!hasCompletedInstruction) {
+                this.showMobileRedirectPrompt();
+            }
         }
     },
 
@@ -681,15 +708,8 @@ const platformUtils = {
     },
 
     showMobileRedirectPrompt: function() {
-        const modal = document.getElementById('mobileRedirectModal');
-        if (!modal) {
-            console.error('Mobile redirect modal not found');
-            return;
-        }
-
-        modal.style.display = 'block';
-        modal.style.opacity = '1';
-        modal.style.zIndex = '2000';
+        const overlay = document.getElementById('instructionOverlay');
+        overlay.classList.add('fade-in');
     },
 
     setupEnvironment: function() {
@@ -860,7 +880,6 @@ const canvasUtils = {
         );
     }
 };
-
 // Image processing utilities
 const imageUtils = {
     processImage: async function(file) {
@@ -1094,7 +1113,6 @@ async function shareToSocial() {
         loadingHandler.hide();
     }
 }
-
 // Instruction overlay functions
 function showInstructions() {
     const overlay = document.getElementById('instructionOverlay');
@@ -1116,6 +1134,11 @@ function closeInstructions() {
     setTimeout(() => {
         overlay.style.display = 'none';
     }, 300);
+}
+
+function skipInstructions() {
+    localStorage.setItem('instructionComplete', 'true');
+    closeInstructions();
 }
 
 // Event Listeners
@@ -1326,9 +1349,6 @@ document.getElementById('previewButton').addEventListener('click', async () => {
         const previewImage = document.getElementById('previewImage');
         previewImage.src = exportCanvas.toDataURL('image/png');
         document.getElementById('previewModal').style.display = 'flex';
-        
-        // Show instructions after preview is displayed
-        setTimeout(showInstructions, 500);
     } catch (error) {
         errorHandler.handle(error, 'generating preview');
     } finally {
