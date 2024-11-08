@@ -599,47 +599,31 @@ const platformUtils = {
         modal.style.opacity = '1';
         modal.style.zIndex = '2000';
         
-        const button = document.getElementById('openInBrowserButton');
-        if (button) {
-            button.onclick = async () => {
-                try {
-                    // Get the current URL
-                    const currentUrl = `${window.location.origin}${window.location.pathname}`;
-                    
-                    // Method 1: Try using Telegram's native sharing
-                    if (window.Telegram?.WebApp) {
-                        window.Telegram.WebApp.openLink(currentUrl, {
-                            try_instant_view: false
-                        });
-                    }
-                    
-                    // Method 2: If Method 1 fails, try using window.open
-                    setTimeout(() => {
-                        window.open(currentUrl, '_system');
-                    }, 100);
-                    
-                    // Method 3: Create and click a link as fallback
-                    setTimeout(() => {
-                        const link = document.createElement('a');
-                        link.href = currentUrl;
-                        link.target = '_blank';
-                        link.rel = 'noopener noreferrer';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        
-                        // Close Telegram WebApp after a delay
-                        setTimeout(() => {
-                            if (window.Telegram?.WebApp) {
-                                window.Telegram.WebApp.close();
-                            }
-                        }, 500);
-                    }, 200);
-                } catch (error) {
-                    console.error('Error opening external browser:', error);
+    const button = document.getElementById('openInBrowserButton');
+    if (button) {
+        button.onclick = () => {
+            try {
+                // Get the current URL
+                const currentUrl = window.location.href;
+    
+                // Use Telegram's openLink method correctly
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.openLink(currentUrl);
+                } else {
+                    // Fallback for browsers outside Telegram
+                    window.open(currentUrl, '_blank', 'noopener,noreferrer');
                 }
-            };
-        }
+    
+                // Optional: Close the WebApp after opening the link
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.close();
+                }
+            } catch (error) {
+                console.error('Error opening external browser:', error);
+            }
+        };
+    }
+
 
         console.log('Mobile redirect modal displayed');
     },
