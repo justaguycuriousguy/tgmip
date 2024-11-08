@@ -570,19 +570,27 @@ const platformUtils = {
         console.log('Platform detection:', {
             isTelegram: this.isTelegram,
             isMobile: this.isMobile,
-            userAgent: navigator.userAgent
+            userAgent: navigator.userAgent,
+            isTelegramWebView: this.isInTelegramWebView()
         });
 
         // Set platform attribute on body
         document.body.setAttribute('data-platform', this.isMobile ? 'mobile' : 'pc');
         
-        // Always check mobile condition and show redirect if needed
-        if (this.isMobile) {
-            console.log('Mobile device detected, showing redirect');
+        // Only show redirect if in Telegram WebView
+        if (this.isMobile && this.isInTelegramWebView()) {
+            console.log('Telegram mobile WebView detected, showing redirect');
             this.showMobileRedirectPrompt();
         } else {
-            console.log('Desktop device detected');
+            console.log('Browser or desktop detected, not showing redirect');
         }
+    },
+
+    // Helper function to detect Telegram WebView
+    isInTelegramWebView: function() {
+        return Boolean(window.Telegram?.WebApp) || 
+               window.navigator.userAgent.includes('Telegram') ||
+               window.location.search.includes('tgWebApp');
     },
 
     showMobileRedirectPrompt: function() {
