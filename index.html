@@ -606,13 +606,29 @@ const platformUtils = {
                     const currentUrl = window.location.href;
                     
                     if (window.Telegram?.WebApp) {
-                        // Use Telegram's openLink method with force_external_browser option
-                        window.Telegram.WebApp.openLink(currentUrl, {
-                            try_instant_view: false,
-                            force_external_browser: true
-                        });
+                        // Create a deep link using a custom scheme to force external browser
+                        const externalBrowserUrl = `browser://${encodeURIComponent(currentUrl)}`;
                         
-                        // Optional: Close the WebApp after opening link
+                        // First try using the native URL scheme
+                        window.location.href = externalBrowserUrl;
+                        
+                        // Fallback: Try opening with specific browser schemes
+                        setTimeout(() => {
+                            // Try Chrome
+                            window.location.href = `googlechrome:${currentUrl}`;
+                            
+                            // Try Safari on iOS
+                            setTimeout(() => {
+                                window.location.href = `x-web-search://${currentUrl}`;
+                                
+                                // Final fallback: Try system URL scheme
+                                setTimeout(() => {
+                                    window.location.href = `intent:${currentUrl}#Intent;action=android.intent.action.VIEW;end`;
+                                }, 100);
+                            }, 100);
+                        }, 100);
+
+                        // Close the Telegram WebApp after attempting to open external browser
                         setTimeout(() => {
                             window.Telegram.WebApp.close();
                         }, 500);
@@ -622,7 +638,7 @@ const platformUtils = {
                     }
                 } catch (error) {
                     console.error('Error opening external browser:', error);
-                    // Final fallback: try direct navigation
+                    // Final fallback
                     window.location.href = currentUrl;
                 }
             };
