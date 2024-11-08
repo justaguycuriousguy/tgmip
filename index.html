@@ -586,7 +586,6 @@ const platformUtils = {
         }
     },
 
-    // Helper function to detect Telegram WebView
     isInTelegramWebView: function() {
         return Boolean(window.Telegram?.WebApp) || 
                window.navigator.userAgent.includes('Telegram') ||
@@ -600,7 +599,6 @@ const platformUtils = {
             return;
         }
 
-        // Ensure the modal is visible
         modal.style.display = 'block';
         modal.style.opacity = '1';
         modal.style.zIndex = '2000';
@@ -608,10 +606,18 @@ const platformUtils = {
         const button = document.getElementById('openInBrowserButton');
         if (button) {
             button.onclick = () => {
-                // Get current URL without query parameters
-                const cleanUrl = window.location.href.split('?')[0];
-                // Open in new tab
-                window.open(cleanUrl, '_blank');
+                // Get current URL without any Telegram parameters
+                const currentUrl = window.location.href;
+                const cleanUrl = currentUrl.split('?')[0]; // Remove any query parameters
+
+                // Use window.location.href to force opening in default browser
+                if (window.Telegram?.WebApp?.close) {
+                    // First close the Telegram WebApp
+                    window.Telegram.WebApp.close();
+                }
+                
+                // Open in default browser
+                window.location.href = `https://telegram.me/share/url?url=${encodeURIComponent(cleanUrl)}`;
             };
         }
 
@@ -627,18 +633,17 @@ const platformUtils = {
     }
 };
 
-// Make sure platformUtils.init() is called after DOM is fully loaded
+// Initialize on DOM load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing platform utils');
     platformUtils.init();
 });
 
-// Also call init on window load as a fallback
+// Fallback initialization
 window.addEventListener('load', function() {
     console.log('Window loaded, ensuring platform utils are initialized');
     platformUtils.init();
 });
-
 // Enhanced security utilities
 const securityUtils = {
     sanitizeInput: function(input) {
