@@ -586,16 +586,12 @@ const platformUtils = {
     isPC: !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)),
     
     init: function() {
-        // Add debug logging for Telegram detection
-        console.log('Telegram WebApp check:', {
-            windowTelegram: Boolean(window.Telegram),
-            webApp: Boolean(window.Telegram?.WebApp),
-            initData: Boolean(window.Telegram?.WebApp?.initData),
-            initDataUnsafe: window.Telegram?.WebApp?.initDataUnsafe
-        });
-
         document.body.setAttribute('data-platform', this.isPC ? 'pc' : 'mobile');
         this.setupPlatformSpecificFeatures();
+        console.log('Platform initialized:', {
+            isTelegram: this.isTelegram,
+            isPC: this.isPC
+        });
     },
 
     setupPlatformSpecificFeatures: function() {
@@ -604,13 +600,6 @@ const platformUtils = {
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.expand();
             
-            // Add debug logging for WebApp data
-            console.log('Telegram WebApp data:', {
-                query_id: window.Telegram?.WebApp?.initDataUnsafe?.query_id,
-                user: window.Telegram?.WebApp?.initDataUnsafe?.user,
-                startParam: window.Telegram?.WebApp?.initDataUnsafe?.start_param
-            });
-
             // Setup BackButton
             window.Telegram.WebApp.BackButton.onClick(() => {
                 if (document.getElementById('previewModal').style.display === 'flex') {
@@ -628,6 +617,10 @@ const platformUtils = {
         document.querySelectorAll('.mobile-only').forEach(el => {
             el.style.display = !this.isPC ? 'flex' : 'none';
         });
+    },
+
+    confirmTelegramWebApp: function() {
+        return Boolean(window.Telegram?.WebApp?.initData);
     }
 };
 
@@ -1103,89 +1096,41 @@ const sharingUtils = {
 
 // Enhanced sending functionality for Telegram
 async function sendToDM() {
-    // Add debug logging
-    console.log('sendToDM called, environment check:', {
-        isTelegram: platformUtils.isTelegram,
-        webApp: Boolean(window.Telegram?.WebApp),
-        initData: Boolean(window.Telegram?.WebApp?.initData),
-        queryId: window.Telegram?.WebApp?.initDataUnsafe?.query_id
-    });
+    addDebugMessage('sendToDM called, checking environment');
 
     if (!window.Telegram?.WebApp) {
-        statusHandler.show('This feature is only available in Telegram', 'error');
-        return;
-    }
-
-    // Always get query_id for debugging purposes
-    const queryId = window.Telegram?.WebApp?.initDataUnsafe?.query_id;
-    console.log('Query ID:', queryId);
-
-    if (!queryId) {
-        window.Telegram.WebApp.showAlert('Please launch this mini app from the bot\'s inline button to share images.');
+        const error = 'Telegram WebApp is not available';
+        console.error(error);
+        statusHandler.show(error, 'error');
         return;
     }
 
     loadingHandler.show('Processing image...');
     
     try {
-        debugUtils.log('Starting sendToDM process');
-        
-        loadingHandler.updateMessage('Preparing image...');
+        addDebugMessage('Preparing image for export...');
         const { base64Data } = await sharingUtils.prepareImageForExport();
         
-        debugUtils.log('Sending data to Telegram with query_id:', queryId);
-
-        // Send data back to the bot using Telegram WebApp API with query_id
+        addDebugMessage('Sending data to Telegram');
+        
+        // Send just the image data, not expecting query_id
         window.Telegram.WebApp.sendData(JSON.stringify({
             type: 'meme_image',
             data: base64Data,
-            query_id: queryId,
             timestamp: Date.now()
         }));
-
+        
         statusHandler.show('Meme sent successfully!', 'success');
+        addDebugMessage('Data sent successfully');
         closePreview();
     } catch (error) {
         console.error('Error in sendToDM:', error);
+        addDebugMessage('Error sending:', { error: error.message });
         errorHandler.handle(error, 'sending to DM');
-        if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.showAlert(error.message);
-        }
     } finally {
         loadingHandler.hide();
     }
 }
-
-// Also update the preview button handler
-document.getElementById('previewButton').addEventListener('click', async () => {
-    console.log('Preview button clicked, checking environment:', {
-        isTelegram: platformUtils.isTelegram,
-        hasQueryId: Boolean(window.Telegram?.WebApp?.initDataUnsafe?.query_id)
-    });
-
-    if (window.Telegram?.WebApp) {
-        // For Telegram users, try to send directly
-        await sendToDM();
-    } else {
-        loadingHandler.show('Generating preview...');
-        
-        try {
-            debugUtils.log('Generating preview');
-            const exportCanvas = await sharingUtils.generateHighResCanvas();
-            const previewImage = document.getElementById('previewImage');
-            previewImage.src = exportCanvas.toDataURL('image/png');
-            document.getElementById('previewModal').style.display = 'flex';
-            
-            if (platformUtils.isTelegram) {
-                window.Telegram.WebApp.BackButton.show();
-            }
-        } catch (error) {
-            errorHandler.handle(error, 'generating preview');
-        } finally {
-            loadingHandler.hide();
-        }
-    }
-});
 
 async function downloadImage() {
     loadingHandler.show('Preparing download...');
