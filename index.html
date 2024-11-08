@@ -254,7 +254,7 @@
             display: none;
         }
 
-        .preview-modal {
+        .preview-modal, .mobile-redirect-modal {
             display: none;
             position: fixed;
             top: 0;
@@ -270,7 +270,11 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        .preview-content {
+        .mobile-redirect-modal {
+            z-index: 2000;
+        }
+
+        .preview-content, .modal-content {
             max-width: 800px;
             margin: 0 auto;
             background: rgba(0, 0, 0, 0.7);
@@ -281,7 +285,17 @@
             position: relative;
         }
 
-        .preview-content h2 {
+        .mobile-redirect-modal .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .preview-content h2, .modal-content h2 {
             margin: 0 0 20px 0;
             text-align: center;
             color: var(--neon-pink);
@@ -302,6 +316,13 @@
             width: 100%;
             display: block;
             border-radius: 8px;
+        }
+
+        .modal-content p {
+            color: white;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            font-size: 16px;
         }
 
         .share-options {
@@ -340,32 +361,6 @@
 
         .share-button.download {
             border-color: var(--neon-green);
-        }
-
-        .share-button.telegram {
-            background: rgba(0, 136, 204, 0.2);
-            border-color: var(--telegram-blue);
-        }
-
-        .share-button.export-mobile {
-            background: rgba(0, 136, 204, 0.15);
-            border-color: var(--telegram-blue);
-        }
-
-        .pc-only {
-            display: none;
-        }
-
-        .mobile-only {
-            display: none;
-        }
-
-        body[data-platform="pc"] .pc-only {
-            display: flex;
-        }
-
-        body[data-platform="mobile"] .mobile-only {
-            display: flex;
         }
 
         .loading-overlay {
@@ -532,30 +527,31 @@
             </div>
             
             <div class="share-options">
-                <!-- Telegram-specific option -->
-                <button class="share-button export-mobile mobile-only telegram-share" onclick="sendToDM()" data-action="dm">
-                    <i class="fab fa-telegram"></i> Share to Telegram
-                </button>
-
-                <!-- Universal options -->
                 <button class="share-button download" onclick="downloadImage()" data-action="download">
                     <i class="fas fa-download"></i> Download
                 </button>
-
-                <!-- PC-specific options -->
-                <button class="share-button pc-only" onclick="copyToClipboard()" data-action="copy">
+                <button class="share-button" onclick="copyToClipboard()" data-action="copy">
                     <i class="fas fa-copy"></i> Copy to Clipboard
                 </button>
-
-                <!-- Additional share options -->
-                <button class="share-button pc-only" onclick="shareToSocial()" data-action="social">
+                <button class="share-button" onclick="shareToSocial()" data-action="social">
                     <i class="fas fa-share-alt"></i> Share
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Enhanced Loading Overlay -->
+    <!-- Mobile Redirect Modal -->
+    <div class="mobile-redirect-modal" id="mobileRedirectModal">
+        <div class="modal-content">
+            <h2>Better Experience Available!</h2>
+            <p>For full access to all features including downloading and sharing, please open this app in your mobile browser.</p>
+            <button class="button" id="openInBrowserButton">
+                <i class="fas fa-external-link-alt"></i> Open in Browser
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
         <div class="loading-text">Processing your meme...</div>
@@ -578,45 +574,46 @@
             <p id="platformMessage"></p>
         </div>
     </div>
-
-<script>
+    <script>
 // Security and Platform Utils
 const platformUtils = {
     isTelegram: Boolean(window.Telegram?.WebApp),
-    isPC: !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)),
+    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
     
     init: function() {
-        document.body.setAttribute('data-platform', this.isPC ? 'pc' : 'mobile');
-        this.setupPlatformSpecificFeatures();
+        document.body.setAttribute('data-platform', this.isMobile ? 'mobile' : 'pc');
+        
+        // Check if we're in Telegram mobile and need to show redirect
+        if (this.isTelegram && this.isMobile) {
+            this.showMobileRedirectPrompt();
+        } else {
+            this.setupEnvironment();
+        }
+        
         console.log('Platform initialized:', {
             isTelegram: this.isTelegram,
-            isPC: this.isPC
+            isMobile: this.isMobile
         });
     },
 
-    setupPlatformSpecificFeatures: function() {
+    setupEnvironment: function() {
         if (this.isTelegram) {
             console.log('Setting up Telegram features');
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.expand();
-            
-            // Setup BackButton
-            window.Telegram.WebApp.BackButton.onClick(() => {
-                if (document.getElementById('previewModal').style.display === 'flex') {
-                    closePreview();
-                } else {
-                    window.Telegram.WebApp.close();
-                }
-            });
         }
+    },
 
-        // Show/hide platform-specific elements
-        document.querySelectorAll('.pc-only').forEach(el => {
-            el.style.display = this.isPC ? 'flex' : 'none';
-        });
-        document.querySelectorAll('.mobile-only').forEach(el => {
-            el.style.display = !this.isPC ? 'flex' : 'none';
-        });
+    showMobileRedirectPrompt: function() {
+        const modal = document.getElementById('mobileRedirectModal');
+        modal.style.display = 'block';
+        
+        document.getElementById('openInBrowserButton').onclick = () => {
+            // Get current URL and remove any Telegram-specific parameters
+            const cleanUrl = window.location.href.split('?')[0];
+            // Open in new tab/window
+            window.open(cleanUrl, '_blank');
+        };
     },
 
     confirmTelegramWebApp: function() {
@@ -657,11 +654,6 @@ const statusHandler = {
         statusEl.textContent = message;
         statusEl.className = `status-message ${type} show`;
         
-        // Show in Telegram if available
-        if (platformUtils.isTelegram && type === 'error') {
-            window.Telegram.WebApp.showAlert(message);
-        }
-        
         setTimeout(() => {
             statusEl.className = 'status-message';
         }, duration);
@@ -698,18 +690,11 @@ const errorHandler = {
     handle: function(error, context = '') {
         console.error(`Error in ${context}:`, error);
         
-        // Different handling based on platform
-        if (platformUtils.isTelegram) {
-            const errorMessage = error.message || 'An error occurred';
-            window.Telegram.WebApp.showAlert(errorMessage);
-            statusHandler.show(errorMessage, 'error');
-        } else {
-            const errorMessage = error.message || 'An error occurred. Please try again.';
-            statusHandler.show(errorMessage, 'error');
-            
-            if (platformUtils.isPC) {
-                console.debug('Detailed error info:', error);
-            }
+        const errorMessage = error.message || 'An error occurred. Please try again.';
+        statusHandler.show(errorMessage, 'error');
+        
+        if (platformUtils.isPC) {
+            console.debug('Detailed error info:', error);
         }
         
         loadingHandler.hide();
@@ -750,7 +735,7 @@ const debugUtils = {
             debugInfo.textContent = JSON.stringify({
                 platformInfo: {
                     isTelegram: platformUtils.isTelegram,
-                    isPC: platformUtils.isPC,
+                    isMobile: platformUtils.isMobile,
                     webAppInitialized: Boolean(window.Telegram?.WebApp?.initData)
                 },
                 canvasInfo: {
@@ -1060,10 +1045,8 @@ const sharingUtils = {
             const exportCanvas = await this.generateHighResCanvas();
             const imageFile = await this.convertCanvasToFile(exportCanvas);
             const compressedImage = await imageUtils.compressImage(imageFile);
-            const base64Data = await imageUtils.convertToBase64(compressedImage);
             
             return {
-                base64Data,
                 file: compressedImage
             };
         } catch (error) {
@@ -1093,44 +1076,6 @@ const sharingUtils = {
         }
     }
 };
-
-// Enhanced sending functionality for Telegram
-async function sendToDM() {
-    addDebugMessage('sendToDM called, checking environment');
-
-    if (!window.Telegram?.WebApp) {
-        const error = 'Telegram WebApp is not available';
-        console.error(error);
-        statusHandler.show(error, 'error');
-        return;
-    }
-
-    loadingHandler.show('Processing image...');
-    
-    try {
-        addDebugMessage('Preparing image for export...');
-        const { base64Data } = await sharingUtils.prepareImageForExport();
-        
-        addDebugMessage('Sending data to Telegram');
-        
-        // Send just the image data, not expecting query_id
-        window.Telegram.WebApp.sendData(JSON.stringify({
-            type: 'meme_image',
-            data: base64Data,
-            timestamp: Date.now()
-        }));
-        
-        statusHandler.show('Meme sent successfully!', 'success');
-        addDebugMessage('Data sent successfully');
-        closePreview();
-    } catch (error) {
-        console.error('Error in sendToDM:', error);
-        addDebugMessage('Error sending:', { error: error.message });
-        errorHandler.handle(error, 'sending to DM');
-    } finally {
-        loadingHandler.hide();
-    }
-}
 
 async function downloadImage() {
     loadingHandler.show('Preparing download...');
@@ -1221,57 +1166,6 @@ document.getElementById('fileInput').addEventListener('change', async function(e
     }
 });
 
-// Stogie selector handlers
-document.querySelectorAll('.stogie-option').forEach(option => {
-    option.addEventListener('click', () => {
-        const img = option.querySelector('img');
-        if (img) {
-            debugUtils.log('Stogie option clicked', {
-                src: img.dataset.src,
-                type: option.dataset.type
-            });
-
-            const overlayImg = new Image();
-            overlayImg.crossOrigin = "Anonymous";
-            overlayImg.src = img.dataset.src;
-            
-            overlayImg.onload = () => {
-                const dpr = window.devicePixelRatio || 1;
-                const overlay = {
-                    image: overlayImg,
-                    x: (canvas.width / dpr) / 2,
-                    y: (canvas.height / dpr) / 2,
-                    rotation: 0,
-                    scale: 0.2,
-                    initialWidth: overlayImg.width,
-                    initialHeight: overlayImg.height,
-                    type: option.dataset.type
-                };
-                
-                overlays.push(overlay);
-                activeOverlay = overlay;
-                document.getElementById('rotationSlider').value = 180;
-                document.getElementById('scaleSlider').value = 37.5;
-                updateDeleteButtonState();
-                canvasUtils.draw();
-                
-                debugUtils.log('Overlay added', {
-                    totalOverlays: overlays.length,
-                    overlayDimensions: {
-                        width: overlayImg.width,
-                        height: overlayImg.height
-                    }
-                });
-            };
-
-            overlayImg.onerror = () => {
-                errorHandler.handle(new Error('Failed to load overlay image'), 'loading overlay');
-            };
-        }
-    });
-});
-</script>
-<script>
 // Touch event handlers
 canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -1458,27 +1352,18 @@ document.getElementById('deleteButton').addEventListener('click', () => {
 
 // Preview button handler
 document.getElementById('previewButton').addEventListener('click', async () => {
-    if (platformUtils.isTelegram && window.Telegram?.WebApp?.initDataUnsafe?.query_id) {
-        // For Telegram users with valid query_id, send directly
-        await sendToDM();
-    } else {
-        loadingHandler.show('Generating preview...');
-        
-        try {
-            debugUtils.log('Generating preview');
-            const exportCanvas = await sharingUtils.generateHighResCanvas();
-            const previewImage = document.getElementById('previewImage');
-            previewImage.src = exportCanvas.toDataURL('image/png');
-            document.getElementById('previewModal').style.display = 'flex';
-            
-            if (platformUtils.isTelegram && window.Telegram?.WebApp) {
-                window.Telegram.WebApp.BackButton.show();
-            }
-        } catch (error) {
-            errorHandler.handle(error, 'generating preview');
-        } finally {
-            loadingHandler.hide();
-        }
+    loadingHandler.show('Generating preview...');
+    
+    try {
+        debugUtils.log('Generating preview');
+        const exportCanvas = await sharingUtils.generateHighResCanvas();
+        const previewImage = document.getElementById('previewImage');
+        previewImage.src = exportCanvas.toDataURL('image/png');
+        document.getElementById('previewModal').style.display = 'flex';
+    } catch (error) {
+        errorHandler.handle(error, 'generating preview');
+    } finally {
+        loadingHandler.hide();
     }
 });
 
@@ -1492,9 +1377,6 @@ function updateDeleteButtonState() {
 
 function closePreview() {
     document.getElementById('previewModal').style.display = 'none';
-    if (platformUtils.isTelegram && window.Telegram?.WebApp) {
-        window.Telegram.WebApp.BackButton.hide();
-    }
 }
 
 // Window event handlers
@@ -1505,27 +1387,6 @@ window.addEventListener('resize', () => {
         debugUtils.log('Window resized');
         canvasUtils.init();
     }, 250);
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    if (activeOverlay) {
-        switch(e.key) {
-            case 'Delete':
-            case 'Backspace':
-                document.getElementById('deleteButton').click();
-                break;
-            case 'Escape':
-                activeOverlay = null;
-                updateDeleteButtonState();
-                canvasUtils.draw();
-                break;
-        }
-    }
-    
-    if (e.key === 'Escape' && document.getElementById('previewModal').style.display === 'flex') {
-        closePreview();
-    }
 });
 
 // Initialize everything when the window loads
